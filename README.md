@@ -18,7 +18,7 @@ unknown unknowns) before a single line of code exists.
    (`[USER]` / `[CONFIRMED]` / `[CANDIDATE]` / `[OPEN]`); no unverified
    tool names stated as fact.
 5. **Council review** — other AIs critique the plan and hunt for made-up
-   facts; you accept or reject each change (up to 3 rounds).
+   facts; you accept or reject each change (up to 5 rounds).
 6. **Final plan** — a PLAN.md any AI coding agent can implement, with
    deviation-logging instructions baked in.
 

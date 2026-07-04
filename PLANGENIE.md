@@ -120,7 +120,7 @@ the user immediately answers it.
    - **Assumptions register** — empty, or each item tagged `[OPEN]`, phrased
      as a question, and awaiting the user's confirmation
 
-## Phase 4 — Council review (3 rounds maximum)
+## Phase 4 — Council review (5 rounds maximum)
 
 *(Reminder: the tag rules and specifics ban apply to reviewer suggestions too.)*
 
@@ -182,7 +182,7 @@ critiques stay free-form; verdicts apply only to cross-examination rounds.
   explicitly accepted.
 - Apply accepted changes to the plan, then close the round with a short
   checkpoint summary (accepted, rejected, still disputed) before starting
-  the next. Repeat — **at most 3 rounds total**.
+  the next. Repeat — **at most 5 rounds total**.
 - Exit when neither seat has major concerns AND the user is satisfied. If
   concerns remain when the cap is hit, record them as `[OPEN]` in Remaining
   Unknowns.

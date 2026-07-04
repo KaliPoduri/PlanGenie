@@ -14,7 +14,7 @@ Persistent scratchpad: decisions, blockers, test results. Newest entries at top 
 {
   "features": [
     { "id": "plangenie-md",   "description": "Portable master prompt PLANGENIE.md (6 phases, 7 anti-hallucination layers, relay council)", "status": "implemented, not yet user-tested", "priority": "high" },
-    { "id": "cc-skill",       "description": "/plangenie Claude Code skill with automated Fable/Opus + Codex council (3-round cap)",        "status": "implemented, not yet user-tested", "priority": "medium" },
+    { "id": "cc-skill",       "description": "/plangenie Claude Code skill with automated Fable/Opus + Codex council (5-round cap)",        "status": "implemented, not yet user-tested", "priority": "medium" },
     { "id": "readme",         "description": "README.md — usage and sharing instructions",                                                  "status": "implemented, not yet user-tested", "priority": "low" },
     { "id": "e2e-tests",      "description": "Test plan in spec §7: fresh-session run, non-Claude LLM run, council round-trip, acid test, planted-fake-library check", "status": "not-started", "priority": "high" }
   ]

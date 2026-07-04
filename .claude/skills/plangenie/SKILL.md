@@ -21,7 +21,7 @@ these Claude Code specifics:
 
 ## Step 2: Phase 4 override — automated council (replaces relay mode)
 
-Cap: **3 rounds maximum.** One round is:
+Cap: **5 rounds maximum.** One round is:
 
 1. **Build the Council Review Packet** exactly as PLANGENIE.md Phase 4 defines
    it: self-contained, reviewer needs zero prior context, includes the
@@ -41,14 +41,14 @@ Cap: **3 rounds maximum.** One round is:
    Codex CLI not signed in), tell the user the GPT seat is unavailable and ask
    (AskUserQuestion): continue with a Claude-only council, or switch to
    PLANGENIE.md relay mode.
-4. **Cross-examination (rounds 2 and 3 only):** include the other reviewer's
+4. **Cross-examination (rounds 2+ only):** include the other reviewer's
    previous critique in each packet under "A previous reviewer said: …" so each
    seat can rebut or agree.
 5. **Merge and verdict:** merge the two critiques. For each refinement the
    reviewers converge on, present it to the user via AskUserQuestion with
    plain-language pros and cons. Apply accepted changes to PLAN.md.
 6. **Exit check:** stop when (a) neither reviewer has major concerns AND the
-   user is satisfied, or (b) 3 rounds are done. Concerns still standing at the
+   user is satisfied, or (b) 5 rounds are done. Concerns still standing at the
    cap are recorded in PLAN.md's Remaining Unknowns as `[OPEN]`.
 
 ## Step 3: Finish
