@@ -24,7 +24,7 @@ unknown unknowns) before a single line of code exists.
 
 ## Quick start — run it anywhere
 
-`PLANGENIE.md` is the whole product. No install, no accounts, no code.
+`PLANGENIE.md` is the whole product. No install, no coding required.
 
 1. Open `PLANGENIE.md`. Copy ALL of it.
 2. Paste it into a new chat with any AI (ChatGPT, Gemini, Claude, anything).
