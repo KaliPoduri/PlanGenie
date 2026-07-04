@@ -4,8 +4,10 @@
 **Artifacts:** PLANGENIE.md (root), .claude/skills/plangenie/SKILL.md, README.md.
 **Plan:** docs/superpowers/plans/2026-07-04-plangenie-implementation.md.
 
-**Status:** Structural checks passed. End-to-end behavior NOT yet verified — do not
-mark features "passing" until the spec §7 tests below run.
+**Status:** Structural checks passed. 2026-07-04: 5-round Claude Fable 5 x Codex
+council review of PLANGENIE.md completed — every section debated, all rounds closed
+in agreement, ~20 refinements applied, joint sign-off. End-to-end behavior NOT yet
+verified — do not mark features "passing" until the spec §7 tests below run.
 
 **Next step — user-run tests (spec §7):**
 1. Paste PLANGENIE.md into a fresh Claude chat; run a toy idea end-to-end.

@@ -35,6 +35,10 @@ Persistent scratchpad: decisions, blockers, test results. Newest entries at top 
 
 - None. Codex interface verified against installed plugin openai-codex/codex/1.0.5: invoke via Agent tool `subagent_type: "codex:codex-rescue"`; prompt MUST say read-only/review-only (runtime defaults to --write otherwise); empty return = failure (plugin returns nothing on error).
 
+## Council review (2026-07-04, second session)
+
+5-round line-by-line council: Claude Fable 5 vs GPT via codex:codex-rescue (Codex thread resumed across rounds). Every round closed only on explicit mutual agreement; disagreements reconciled via counter-proposal exchanges. Scope per round: R1 header+hard rules, R2 state+Phases 0-2, R3 Phases 3-4, R4 Phase 5+cross-consistency, R5 full adversarial re-read. Result: ~20 agreed refinements applied to PLANGENIE.md; Codex formal sign-off ("strictly better than the original and not detrimental"), Claude concurring. Highlights: [CONFIRMED] provenance parenthetical; echo-check option-pick exemption + anti-recursion; specifics ban expanded (product capability, legal/compliance) with [USER]-requirement carve-out; register verbosity fix (one-line deltas in no-file chats); [OPEN]-tagged blindspots and assumption questions; "hardest to change later" ordering; every-major-concern merge rule; pre-flight audit accepts user approval as provenance; implementing-agent block now verifies user-approved specifics like [CANDIDATE] and logs verification results.
+
 ## Test results
 
 - **2026-07-04 structural checks (this session): PASS.** PLANGENIE.md — 155 lines (target 120–220), 6 phase headings, all 4 tags present, packet template, implementation-notes instruction, 3-round cap, phase-transition reminders. SKILL.md — valid frontmatter, both council seats, READ-ONLY wording, relay fallback. README — all references present. Cross-artifact: no placeholders, consistent tag spellings and paths. Seven-layer trace against spec §4: all locatable.
