@@ -6,8 +6,11 @@
 
 **Status:** Structural checks passed. 2026-07-04: 5-round Claude Fable 5 x Codex
 council review of PLANGENIE.md completed — every section debated, all rounds closed
-in agreement, ~20 refinements applied, joint sign-off. End-to-end behavior NOT yet
-verified — do not mark features "passing" until the spec §7 tests below run.
+in agreement, ~20 refinements applied, joint sign-off. Relay mode (Phase 4B)
+rewritten as a two-seat debate protocol ported from Improve_Claude
+copilot/council.prompt.md (per-seat round-2+ packets, AGREE / AGREE WITH CHANGE /
+REBUT verdicts, arbitration, round checkpoints) — commit d8bf5ed. End-to-end
+behavior NOT yet verified — do not mark "passing" until the spec §7 tests run.
 
 **Next step — user-run tests (spec §7):**
 1. Paste PLANGENIE.md into a fresh Claude chat; run a toy idea end-to-end.
