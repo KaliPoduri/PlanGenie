@@ -130,11 +130,24 @@ Other AIs now critique the plan. Two ways to run it:
 call other models itself (for example the Claude Code `/plangenie` skill):
 follow that harness's council instructions.
 
-**B. Relay mode (the normal case):** print a **Council Review Packet** in one
-copy-paste block and ask the user to paste it into one or two OTHER AI chats
-(a different brand than you, if possible), then paste the replies back.
-Packet template — fill in the plan and print it as one continuous plain-text
-block, not inside Markdown quote or code formatting:
+**B. Relay mode (the normal case):** a two-seat debate, couriered by the
+user. Each round, two seats critique the same packet:
+
+- **Seat 1 — fresh eyes:** best option: the user opens a NEW chat (same brand
+  as you is fine) and pastes the packet there, then pastes the critique back.
+  If they decline, critique the packet yourself, using ONLY the packet text —
+  you wrote the plan, so hunt for your own mistakes — and say plainly that
+  fresh-eyes review was skipped.
+- **Seat 2 — external AI:** the user pastes the packet into an OTHER AI chat
+  (a different brand than you, if possible) and pastes the reply back. Never
+  simulate or invent seat 2's critique. If the user cannot obtain it this
+  round, ask whether to continue single-seat or stop — and say plainly that
+  single-seat loses the cross-model check.
+
+**Round 1 packet** — print it as one continuous plain-text block, not inside
+Markdown quote or code formatting. It must be SELF-CONTAINED: a reviewer with
+zero prior context can review it, so embed the full current plan — never a
+summary or a diff:
 
 BEGIN COUNCIL REVIEW PACKET
 You are a critical reviewer of a software project plan. You have no other
@@ -144,25 +157,40 @@ the planner miss?, (3) risks, (4) simpler alternatives, (5) fact-hunt:
 actively try to refute every named tool, library, API, version, price,
 product capability, or legal/compliance claim — flag anything you cannot
 verify or suspect is made up.
-Reply as a numbered list of concerns, most important first. Be specific and brief.
+Reply as a numbered list of major concerns, then minor concerns, then
+concrete refinements — most important first. Be specific and brief.
 --- PLAN BEGINS ---
 [paste the full current plan here, including its tags]
 --- PLAN ENDS ---
 END COUNCIL REVIEW PACKET
 
+**Rounds 2+ — cross-examination.** Build a SEPARATE packet per seat: the same
+template with the updated plan, plus the OTHER seat's unresolved points as a
+NUMBERED list under "A previous reviewer said: …", with this instruction:
+"Answer every numbered point with a verdict: AGREE, AGREE WITH CHANGE
+(concern accepted, different fix — say which), or REBUT (reason)." Round 1
+critiques stay free-form; verdicts apply only to cross-examination rounds.
+
+**When both critiques are back, merge and arbitrate:**
+- Rounds 2+: first tally each carried-over point as settled (AGREE, or
+  conceded after a rebuttal) or disputed. A point a seat left without a
+  verdict is a hole in that review — re-send that seat's packet so it can
+  answer; do not guess its position.
+- Deduplicate the two critiques into one numbered refinement list. For each
+  item: plain-language pros and cons — note when both seats raised it — then
+  the user accepts or rejects. Never apply a refinement the user has not
+  explicitly accepted.
+- Apply accepted changes to the plan, then close the round with a short
+  checkpoint summary (accepted, rejected, still disputed) before starting
+  the next. Repeat — **at most 3 rounds total**.
+- Exit when neither seat has major concerns AND the user is satisfied. If
+  concerns remain when the cap is hit, record them as `[OPEN]` in Remaining
+  Unknowns.
+
 If the user cannot or will not consult another AI and no harness council is
 available, run a clearly labeled self-review against the same five critique
 criteria, and record `[OPEN] Plan not reviewed by an independent AI` in
 Remaining Unknowns.
-
-When critiques come back:
-- Merge the critiques. Present every major concern to the user with
-  plain-language pros and cons — note when both reviewers raised it. The user
-  accepts or rejects each one.
-- Apply accepted changes to the plan. Repeat — **at most 3 rounds total**.
-- Exit when the council has no major concerns AND the user is satisfied. If
-  concerns remain when the cap is hit, record them as `[OPEN]` in Remaining
-  Unknowns.
 
 ## Phase 5 — Final plan
 
