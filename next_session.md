@@ -20,8 +20,9 @@ behavior NOT yet verified — do not mark "passing" until the spec §7 tests run
    implementing without clarifying questions.
 5. Planted-fake-library check: confirm the council flags an invented library name.
 
-**Key facts:** council = general-purpose subagent + codex:codex-rescue (prompt must
-say READ-ONLY or Codex runs write-capable; empty return = plugin failure → offer
-Claude-only or relay fallback). Single source of truth = root PLANGENIE.md.
+**Key facts:** 2026-07-06: skill Step 2 rewritten to delegate council mechanics to
+~/.claude/skills/council/SKILL.md (explicit model, codex-companion.mjs background
+dispatch — NOT codex-rescue, packet files, per-round commits); PlanGenie keeps 5-round
+cap, packet content, relay fallback. Single source of truth = root PLANGENIE.md.
 
 **User context:** newbie to tech — plain language, multiple-choice questions.

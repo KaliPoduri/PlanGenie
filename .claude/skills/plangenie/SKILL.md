@@ -21,33 +21,39 @@ these Claude Code specifics:
 
 ## Step 2: Phase 4 override — automated council (replaces relay mode)
 
-Cap: **5 rounds maximum.** One round is:
+**Mechanics come from the council skill; content comes from PLANGENIE.md.**
 
-1. **Build the Council Review Packet** exactly as PLANGENIE.md Phase 4 defines
-   it: self-contained, reviewer needs zero prior context, includes the
-   fabrication-hunt instruction, contains the full current plan with tags.
-2. **Claude seat:** spawn a fresh subagent — Agent tool, `subagent_type:
-   "general-purpose"` — whose prompt is ONLY the packet. A fresh subagent has
-   fresh eyes; do not review inline in this conversation. Spawn both seats in
-   the same message so they run in parallel.
-3. **GPT seat:** spawn Agent tool, `subagent_type: "codex:codex-rescue"`, with
-   this prompt shape:
+Read `~/.claude/skills/council/SKILL.md` and follow its Hard rules, Setup,
+Round protocol, and Cancelling section exactly. In brief (the council skill
+text is authoritative, not this summary): explicit `model:` on the Claude
+seat's Agent call; the Codex seat dispatched with codex-companion.mjs
+`task --background` and the READ-ONLY prefix — never via the codex-rescue
+subagent; packets written to `council/round-N-packet.md` files, never inlined
+in a prompt; ONE background poll loop per Codex job; no raw subagent
+transcripts or TaskOutput in main context; checkpoint + git commit after every
+round. Each of those rules fixes a real past failure — do not relax them.
 
-   "READ-ONLY review — do not edit or create any files, no code changes,
-   review only. [then the full packet]"
+If the council skill file is missing on this machine, say so and switch to
+PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
 
-   The read-only wording is mandatory: without it the Codex runtime defaults to
-   a write-capable run. If the result is empty or an error (plugin missing,
-   Codex CLI not signed in), tell the user the GPT seat is unavailable and ask
-   (AskUserQuestion): continue with a Claude-only council, or switch to
-   PLANGENIE.md relay mode.
-4. **Cross-examination (rounds 2+ only):** include the other reviewer's
-   previous critique in each packet under "A previous reviewer said: …" so each
-   seat can rebut or agree.
-5. **Merge and verdict:** merge the two critiques. For each refinement the
-   reviewers converge on, present it to the user via AskUserQuestion with
-   plain-language pros and cons. Apply accepted changes to PLAN.md.
-6. **Exit check:** stop when (a) neither reviewer has major concerns AND the
+PlanGenie overrides on top of the council skill's protocol:
+
+1. **Rounds: 5 maximum** (not the council skill's default 3).
+2. **Packet content** is exactly as PLANGENIE.md Phase 4 defines it:
+   self-contained, the FULL current tagged plan embedded (never a summary or
+   diff), the five critique criteria including the fabrication-hunt, and —
+   rounds 2+ — per-seat packets carrying the other seat's unresolved points as
+   a numbered list with the AGREE / AGREE WITH CHANGE / REBUT verdict
+   instruction.
+3. **If the Codex seat is unavailable** (empty result or error — plugin
+   missing, CLI signed out): AskUserQuestion — continue with a Claude-only
+   council, or switch to PLANGENIE.md relay mode. Say plainly that Claude-only
+   loses the cross-model check.
+4. **Merge and arbitrate per PLANGENIE.md Phase 4:** tally verdicts, re-send a
+   packet if a seat left a point unanswered, present each refinement via
+   AskUserQuestion with plain-language pros and cons, and never apply a
+   refinement the user has not accepted. Apply accepted changes to PLAN.md.
+5. **Exit check:** stop when (a) neither reviewer has major concerns AND the
    user is satisfied, or (b) 5 rounds are done. Concerns still standing at the
    cap are recorded in PLAN.md's Remaining Unknowns as `[OPEN]`.
 
