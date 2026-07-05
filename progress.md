@@ -48,3 +48,23 @@ Persistent scratchpad: decisions, blockers, test results. Newest entries at top 
 
 - **2026-07-04 (session 2):** Verified codex-rescue invocation interface; wrote implementation plan (writing-plans skill); executed inline (executing-plans skill): PLANGENIE.md, SKILL.md, README.md written, verified, committed. Remaining: user UAT per spec §7.
 - **2026-07-04 (session 1):** Parsed source PDF; explained article to user; brainstormed via superpowers:brainstorming (3 AskUserQuestion rounds + hallucination-mitigation discussion); wrote and committed approved design spec; wrote tracking files.
+
+## 2026-07-06 — Council end-to-end stress test (spec §7 tests 3 & 5): PASS
+
+Ran /plangenie with a scripted test user and toy idea (family grocery list
+app) in an isolated scratchpad git repo. 3 council rounds, both seats live:
+- Claude seat: general-purpose subagent, explicit model "fable" — OK.
+- Codex seat: codex-companion.mjs task --background + one background poll
+  loop per round — OK; ~5–10 min per round; no refusals, no injection flags.
+- Fabrication hunt: BOTH seats caught the planted fake library
+  ("GroceryMesh") and the planted false fact (Firebase Spark = 500
+  connections; both corrected to 100 with sources). Round 1, independently.
+- Rounds 2–3 cross-exam: per-seat packets, AGREE / AGREE WITH CHANGE / REBUT
+  verdicts all answered, zero unanswered points, zero REBUT deadlocks;
+  seats converged (both flagged the same join-flow-rules gap unprompted).
+- Checkpoints: council/LOG.md + git commit after every round (4 commits).
+- Exit: closed after round 3 of 5 with user-satisfied path; leftovers → [OPEN].
+- Phase 5: final PLAN.md with implementing-agent block, all lines tagged,
+  assumptions register emptied.
+Caveats: interview answers and accept/reject verdicts were simulated (user
+away) — AskUserQuestion path untested live; tests 1, 2, 4, 6 still pending.
