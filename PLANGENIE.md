@@ -139,15 +139,22 @@ user. Each round, two seats critique the same packet:
   you wrote the plan, so hunt for your own mistakes — and say plainly that
   fresh-eyes review was skipped.
 - **Seat 2 — external AI:** the user pastes the packet into an OTHER AI chat
-  (a different brand than you, if possible) and pastes the reply back. Never
-  simulate or invent seat 2's critique. If the user cannot obtain it this
+  (a different brand than you, if possible) and pastes the reply back. If the
+  user's chat app has a model picker (GitHub Copilot, Cursor, and similar), a
+  NEW chat with a different model selected counts as an other AI — no second
+  app or account needed; suggest this shortcut first. Never simulate or
+  invent seat 2's critique. If the user cannot obtain it this
   round, ask whether to continue single-seat or stop — and say plainly that
   single-seat loses the cross-model check.
 
 **Round 1 packet** — print it as one continuous plain-text block, not inside
-Markdown quote or code formatting. It must be SELF-CONTAINED: a reviewer with
-zero prior context can review it, so embed the full current plan — never a
-summary or a diff:
+Markdown quote or code formatting. If you can create files in this
+environment, ALSO save every packet as a file (round 1:
+`council/round-1-packet.md`; rounds 2+: one file per seat) and tell the user
+they can attach that file in the reviewer chat instead of copy-pasting — it
+avoids truncated pastes and chat length limits. Every packet must be
+SELF-CONTAINED: a reviewer with zero prior context can review it, so embed
+the full current plan — never a summary or a diff:
 
 BEGIN COUNCIL REVIEW PACKET
 You are a critical reviewer of a software project plan. You have no other

@@ -31,7 +31,60 @@ unknown unknowns) before a single line of code exists.
 3. Type your project idea. Answer the questions.
 4. When it produces the "Council Review Packet", paste that into a *different*
    AI, then paste the reply back. That's the review step, done by hand
-   ("relay mode").
+   ("relay mode"). Tip: in apps with a model picker (GitHub Copilot, Cursor),
+   a new chat with a different model selected counts as a different AI.
+
+New to this? The next section walks through every step in plain words.
+
+## Step by step — what happens and what you do
+
+You never need to write code or know technical terms. This is the whole
+journey, in order.
+
+**Step 1 — Start PlanGenie.** Copy everything in `PLANGENIE.md` and paste it
+into a new AI chat. Or, if you set up a slash command (recipes below), just
+type `/plangenie`.
+
+**Step 2 — Give your idea in one line.** Example: "An app that reminds my
+family whose turn it is to do the dishes."
+
+**Step 3 — Answer its questions.** PlanGenie asks one question at a time,
+usually multiple choice. Two things to know:
+
+- "I don't know" is always a fine answer. It gets recorded as an open
+  question instead of a silent guess — that is the whole point of the tool.
+- Type **"wrap up"** any time you have had enough; it jumps to the draft.
+
+It will also repeat your answers back ("Did I get that right?"). Just say yes,
+or say no and correct it.
+
+**Step 4 — Check the summary.** Before drafting anything, PlanGenie explains
+the project back to you in plain words. Fix anything it got wrong.
+
+**Step 5 — The council review (the only part with any legwork).** Two other
+AI "reviewers" now criticize the plan and hunt for made-up facts. In most
+chat apps, you are the messenger between them:
+
+1. PlanGenie prints a "Council Review Packet" (and saves it as a file like
+   `council/round-1-packet.md` when it can).
+2. Open a NEW chat and paste the packet in — or attach the packet file.
+   *Shortcut:* if your app has a model picker (GitHub Copilot, Cursor, and
+   similar), open a new chat and pick a different model from the dropdown.
+   That counts as a different AI — no second app or account needed.
+3. Copy the reviewer's whole reply and paste it back to PlanGenie.
+4. Do the same for the second reviewer seat when PlanGenie asks.
+5. PlanGenie then shows you each suggested change with plain-language pros
+   and cons. You say yes or no to each. Nothing changes without your OK.
+
+This repeats for up to 5 rounds; usually the reviewers run out of complaints
+sooner. (In Claude Code with the Codex plugin, this whole step runs by
+itself — you only do the yes/no part.)
+
+**Step 6 — Get your plan.** PlanGenie prints the final `PLAN.md`. Save it.
+To build the project, open any AI coding tool and say "Implement this plan",
+giving it the file. The plan already contains instructions telling that AI
+what to verify and what to ask you about instead of guessing. Keep
+`UNKNOWNS.md` nearby too — it lists the open questions to settle as you go.
 
 ## Set up in your coding tool
 
@@ -88,6 +141,12 @@ commands ([docs](https://code.visualstudio.com/docs/agent-customization/prompt-f
 Note: this works in VS Code's Copilot Chat. The separate Copilot CLI does not
 support prompt files at the time of writing — paste the file there instead.
 
+This repo also ships `.github/prompts/council-review.prompt.md`, a
+reviewer-seat prompt for the council step: open a second Copilot chat, pick a
+DIFFERENT model from the model picker, type `/council-review`, and attach the
+packet file PlanGenie saved. Not yet field-tested — if the command does not
+appear, pasting the packet works as always.
+
 ### OpenAI Codex (CLI and IDE extension)
 
 Codex reads custom prompts from your home directory
@@ -128,4 +187,5 @@ Code version, send the `.claude/skills/plangenie/` folder along with
 |---|---|
 | `PLANGENIE.md` | The portable agent — paste into any AI chat |
 | `.claude/skills/plangenie/SKILL.md` | Claude Code adapter (`/plangenie`) |
+| `.github/prompts/council-review.prompt.md` | Copilot reviewer-seat prompt for the council step |
 | `PLAN.md`, `UNKNOWNS.md` | Created per project while PlanGenie runs |

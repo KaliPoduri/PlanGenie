@@ -19,6 +19,8 @@ behavior NOT yet verified — do not mark "passing" until the spec §7 tests run
 4. Acid test: give the generated PLAN.md to a brand-new session; it should start
    implementing without clarifying questions.
 5. Planted-fake-library check: confirm the council flags an invented library name.
+6. Copilot: confirm /council-review appears and works with an attached packet file
+   (.github/prompts/council-review.prompt.md — new, untested).
 
 **Key facts:** 2026-07-06: skill Step 2 rewritten to delegate council mechanics to
 ~/.claude/skills/council/SKILL.md (explicit model, codex-companion.mjs background
