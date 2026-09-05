@@ -5,36 +5,132 @@ description: Use when the user wants to turn a software project idea into a full
 
 # PlanGenie — Claude Code adapter
 
+## Step 0: Resume check (every invocation, before anything else)
+
+`/plangenie` may be starting a new plan OR continuing one — the file
+`CHECKPOINT.md` in the current project directory decides which. Check for it
+FIRST, before loading anything else, so a fresh session spends its context on
+the plan, not on re-orientation.
+
+- **`CHECKPOINT.md` exists and its `Status:` is `IN PROGRESS` or `PAUSED`:**
+  read it (it is short), state in one line where the run stopped (its `Phase`,
+  `Step` and `Next` lines) and AskUserQuestion: **Resume from there
+  (recommended)** / **Start over** (the old run's `PLAN.md`, `UNKNOWNS.md`,
+  `CHECKPOINT.md` and `council/` are moved to `plangenie-archive-<date-time>/`
+  first — nothing is deleted) / **Something else**. `/plangenie resume` skips
+  the question and resumes directly. On resume: load `PLANGENIE.md` (Step 1's
+  lookup), then follow its "Pause and resume" section exactly — it lists the
+  only files to read per phase; do not read anything else and never rebuild
+  state from the transcript. If the checkpoint says Phase 4 with the
+  automated council, the council stage comes from `council/LOG.md` via the
+  council skill's Resuming section (Step 2) — `CHECKPOINT.md` only mirrors it.
+- **`Status: FINISHED`:** say the plan was finished on the recorded date and
+  AskUserQuestion: revise this plan (re-enter Phase 4 or edit) / start a new
+  plan (ask for a different folder, or archive as above) / nothing.
+- **No `CHECKPOINT.md`:** a new run. `/plangenie resume` with no checkpoint:
+  say there is nothing to resume in this directory (name it) and stop.
+
+A run that ended abruptly (Esc, Ctrl+C, /clear, a crash, a usage cutoff)
+shows `Status: IN PROGRESS` — resume it exactly like a paused one; the
+checkpoint is at most one step old (PLANGENIE.md's write cadence).
+
 ## Step 1: Load the core prompt
 
 Read `PLANGENIE.md`:
-1. First look in this skill's own directory (`.claude/skills/plangenie/PLANGENIE.md`).
-2. If not there, look in the project root.
+1. First look in this skill's own directory (`~/.claude/skills/plangenie/PLANGENIE.md` — the user-level skills directory, not the project's `.claude/`).
+2. If not there, a copy in the project root may exist — use it only if the user confirms that copy is the one they want.
 3. If missing in both, ask the user where it is. Do NOT reconstruct it from memory.
+
+Before the first write: state the absolute project directory you are about to
+write into. If `PLAN.md`, `UNKNOWNS.md` or `CHECKPOINT.md` already exist there
+and this session did not create them (and Step 0 did not already resolve
+them), ask before overwriting — they may belong to another project or an
+earlier run.
 
 Follow PLANGENIE.md exactly — all Hard Rules, Phases 0–3 and 5 unchanged — with
 these Claude Code specifics:
 - Keep `PLAN.md` and `UNKNOWNS.md` as real files in the project root; update
-  them after every change.
+  them at the cadence PLANGENIE.md defines (topic boundaries and before
+  every phase transition or long-running step).
+- Keep `CHECKPOINT.md` as a real file too, rewritten at EVERY state change
+  exactly as PLANGENIE.md's "Pause and resume" section defines (question
+  asked, answer recorded, echo-check issued or answered, phase or step
+  change, council stage change, refinement verdict). It is small; the cost is
+  one short write per step, and it is what lets a stop at any moment resume
+  from that exact step.
 - Use the AskUserQuestion tool for multiple-choice interview questions and for
-  accept/reject verdicts on council refinements.
+  accept/reject verdicts on council refinements. The user may answer any of
+  them with `pause` (via "Other") or send `pause` as a plain message; follow
+  PLANGENIE.md's pause procedure and STOP — no further question in that turn.
+  In Phase 4 with the automated council, the council skill's "Pausing on
+  request" section runs first (it decides what happens to seats in flight),
+  then the PLANGENIE.md pause procedure writes `CHECKPOINT.md`.
+- After a `pause`, `resume` or `continue` in the same session goes through
+  Step 0's resume path (re-read `CHECKPOINT.md`; do not trust memory). In a
+  fresh session the user runs `/plangenie` or `/plangenie resume` in the same
+  directory.
 
 ## Step 2: Phase 4 override — automated council (replaces relay mode)
 
 **Mechanics come from the council skill; content comes from PLANGENIE.md.**
 
 Read `~/.claude/skills/council/SKILL.md` and follow its Hard rules, Setup,
-Round protocol, and Cancelling section exactly. In brief (the council skill
-text is authoritative, not this summary): explicit `model:` on the Claude
-seat's Agent call; the Codex seat dispatched with codex-companion.mjs
-`task --background` and the READ-ONLY prefix — never via the codex-rescue
-subagent; packets written to `council/round-N-packet.md` files, never inlined
-in a prompt; ONE background poll loop per Codex job; no raw subagent
-transcripts or TaskOutput in main context; checkpoint + git commit after every
-round. Each of those rules fixes a real past failure — do not relax them.
+Round protocol, Pausing, Resuming, and Cancelling sections exactly. The
+council skill text is authoritative for mechanics EXCEPT where the numbered
+overrides below contradict it — the overrides win. Do not paraphrase the
+mechanics here or from memory: read them. This adapter was written against
+the council skill's marker line `council-protocol: v3`; if that file shows a
+different version (or no marker), stop and tell the user the adapter needs
+review before running a council.
 
 If the council skill file is missing on this machine, say so and switch to
 PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
+
+**Preflight (before round 1), in this order:**
+1. **Resume check first (classify only — nothing is moved, cancelled or
+   written in this step):** if `council/LOG.md` exists and its last `STATUS:`
+   line is not `CLOSED` or `ABANDONED` — `IN PROGRESS (…)` and `PAUSED (…)`
+   both count — (or it has no `STATUS:` line but shows a dispatched round
+   without recorded results), this is an interrupted or paused run —
+   follow the council skill's Resuming section, which also covers a job the
+   plugin's session cleanup has since deleted. (A run resumed through Step 0
+   normally lands here with `CHECKPOINT.md` already read; LOG.md still wins
+   for the council stage.) A finished round is NOT a
+   finished council. Do NOT archive or overwrite anything. If the user
+   declares the interrupted run abandoned, note that decision now; the
+   cancellation of outstanding jobs and the `STATUS: ABANDONED` LOG write
+   happen in step 4 — the run then counts as completed for archival. If
+   `council/` has files but no LOG.md, classify it as a completed foreign
+   run: ALL its root contents, whatever their names, are moved in step 4 —
+   this branch needs no LOG.md evidence and is not limited to step 4's named
+   file set.
+2. **Read-only environment checks:** resolve the companion path with the
+   council skill's alias-independent snippet (`printf` + `sort -V`, never
+   `ls`), confirm the file exists and `node "$COMPANION" status --json` exits
+   0 (the smoke test that catches a broken path before any packet is written;
+   it needs no auth), confirm `node` runs, confirm the `council-claude-seat`
+   and `council-claude-seat-2` agent files exist in `~/.claude/agents/`, and
+   check whether the project root is a git repository. (No live Codex auth probe — the first dispatch is the auth
+   test, and override 3 handles that failure.)
+3. **Cost warning + consent:** tell the user to allow minutes to tens of
+   minutes per Codex round (durations recorded in earlier LOG.md files are the
+   best local estimate) and that a full council can exceed an hour; confirm
+   they want the automated council BEFORE anything is created, moved, or
+   written.
+4. **Only then create/move artifacts:** perform the actions classified in
+   step 1 — for an abandoned run, cancel its outstanding jobs and write its
+   `STATUS: ABANDONED` line first; create `council/` if missing; if it holds
+   files from a previous COMPLETED run (LOG.md `STATUS: CLOSED` or
+   `ABANDONED` — never merely "last round finished" — or the no-LOG.md
+   foreign-run case from step 1), move
+   that run's packets, critiques, and LOG.md together to
+   `council/archive-<date-time>/` (timestamped — same-day reruns must not
+   collide), and stage the git deletions of the moved files in the next
+   commit — the old paths were committed, and nothing else will ever stage
+   their removal (staging a deletion at `council/round-1-packet.md` does not
+   violate the archive-*/ exclusion). If the project root is not a git repository, AskUserQuestion —
+   `git init` it, or run with file-only checkpoints (still write
+   `council/LOG.md` and next_session.md each round; skip the commit).
 
 PlanGenie overrides on top of the council skill's protocol:
 
@@ -44,20 +140,65 @@ PlanGenie overrides on top of the council skill's protocol:
    diff), the five critique criteria including the fabrication-hunt, and —
    rounds 2+ — per-seat packets carrying the other seat's unresolved points as
    a numbered list with the AGREE / AGREE WITH CHANGE / REBUT verdict
-   instruction.
-3. **If the Codex seat is unavailable** (empty result or error — plugin
-   missing, CLI signed out): AskUserQuestion — continue with a Claude-only
-   council, or switch to PLANGENIE.md relay mode. Say plainly that Claude-only
-   loses the cross-model check.
-4. **Merge and arbitrate per PLANGENIE.md Phase 4:** tally verdicts, re-send a
-   packet if a seat left a point unanswered, present each refinement via
-   AskUserQuestion with plain-language pros and cons, and never apply a
-   refinement the user has not accepted. Apply accepted changes to PLAN.md.
+   instruction. Content only: PLANGENIE.md's relay instructions — printing
+   the packet for the user, asking them to courier it — do NOT apply here;
+   packets exist only as `council/` files read by the seats.
+3. **If the Codex seat is unavailable** — either launch failure (the
+   companion path resolves to nothing or `task --background` errors out;
+   there is no job id, so no `status` check is possible) or job failure
+   (empty result or error confirmed via `status <job-id>`; a dead poll loop
+   is NOT an empty result): AskUserQuestion — continue with a Claude-only
+   council, or switch to PLANGENIE.md relay mode. Say plainly that
+   Claude-only loses the cross-model check. Claude-only means BOTH seats are
+   fresh Claude subagents with no shared context: seat 1 via
+   `council-claude-seat` (pins fable, effort high, read-only tools), seat 2
+   via `council-claude-seat-2` (pins a DIFFERENT Claude model — opus — effort
+   high, the same read-only tools), each with the explicit `model:` on the
+   Agent call. Only if an agent file is missing fall back to `general-purpose`
+   with an explicit different `model`, and say plainly that this seat runs at
+   session effort and WITHOUT an enforced read-only tool boundary. If only one
+   Claude model is available, say plainly the council is single-model. Record
+   each seat's actual verification capabilities (its tools) in LOG.md rather
+   than a blanket label. The round protocol is otherwise unchanged.
+4. **Merge and arbitrate per PLANGENIE.md Phase 4:** tally verdicts (AGREE
+   WITH CHANGE settles the concern, not the remedy — the point stays disputed
+   until the other seat accepts the alternative fix); route every claim a
+   seat marked UNVERIFIABLE to the seat that can check it in the next packet,
+   or record it in UNKNOWNS.md as an unresolved verification obligation; if a
+   seat left a point unanswered, re-send that seat's packet AT MOST ONCE per
+   round — if the verdict is still missing, record those points as disputed
+   and the seat as failed for the round; do not loop. Present each refinement
+   via AskUserQuestion with plain-language pros and cons, and never apply a
+   refinement the user has not accepted. Apply accepted changes to PLAN.md
+   and keep UNKNOWNS.md in sync. Round commits (and pause commits) are made
+   BY explicit pathspec — `git commit -m "..." -- PLAN.md UNKNOWNS.md
+   CHECKPOINT.md council/LOG.md council/round-N-*.md next_session.md
+   <archived paths whose deletion this run staged>` — never
+   `council/archive-*/`, so the user's unrelated staged work is left
+   untouched; review the set with `git status --short -- <the same paths>`
+   first.
 5. **Exit check:** stop when (a) neither reviewer has major concerns AND the
-   user is satisfied, or (b) 5 rounds are done. Concerns still standing at the
-   cap are recorded in PLAN.md's Remaining Unknowns as `[OPEN]`.
+   user is satisfied — ask at each round checkpoint (AskUserQuestion:
+   another round, or done) rather than inferring satisfaction from refinement
+   verdicts — or (b) 5 rounds are done. Concerns still standing at ANY exit —
+   an early "done" included, not only the cap — are recorded in PLAN.md's
+   Remaining Unknowns as `[OPEN]`.
+6. **Pause and resume inside the council:** `pause` at any council prompt
+   (a refinement verdict, the another-round question, a fallback choice)
+   runs the council skill's "Pausing on request" section — which handles
+   seats in flight, writes `STATUS: PAUSED (round N, <stage>)` and the
+   `RESUME:` line to `council/LOG.md`, and commits — and THEN PLANGENIE.md's
+   pause procedure writes `CHECKPOINT.md` (`Phase: 4`, `Council:` mirroring
+   the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
+   resume` from the same directory) reads `council/LOG.md`, the current
+   round's critiques and `council/round-N-merge.md` only, and continues at
+   the recorded stage — verdicts already logged are never re-asked, and a
+   round whose Codex job was lost is re-dispatched with its saved packet.
 
 ## Step 3: Finish
 
 Run Phase 5 exactly as PLANGENIE.md says: final PLAN.md ending with the
 "Instructions for the implementing agent" block, and UNKNOWNS.md up to date.
+Then set `CHECKPOINT.md` to `Status: FINISHED` with the finish date and the
+readiness verdict, so a later `/plangenie` in this directory offers to revise
+rather than resume.

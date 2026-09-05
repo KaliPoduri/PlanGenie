@@ -13,7 +13,8 @@ unknown unknowns) before a single line of code exists.
 1. **Intake** — you give a one-line idea and say how technical you are.
 2. **Blindspots** — it first teaches you what people typically overlook.
 3. **Interview** — one plain-English question at a time, multiple choice,
-   8–20 questions, quit anytime with "wrap up".
+   8–20 questions, quit anytime with "wrap up", or say "pause" and pick up
+   later exactly where you left off.
 4. **Draft plan** — every line tagged with where it came from
    (`[USER]` / `[CONFIRMED]` / `[CANDIDATE]` / `[OPEN]`); no unverified
    tool names stated as fact.
@@ -85,6 +86,32 @@ To build the project, open any AI coding tool and say "Implement this plan",
 giving it the file. The plan already contains instructions telling that AI
 what to verify and what to ask you about instead of guessing. Keep
 `UNKNOWNS.md` nearby too — it lists the open questions to settle as you go.
+
+## Stop and pick up later
+
+You can stop at any moment — in the middle of the interview, while the
+reviewers are debating, anywhere — and continue later from that exact spot.
+
+- **To stop:** type **"pause"**. PlanGenie saves where it is and prints
+  three lines telling you how to come back. (Closing the window or losing
+  the chat also works: PlanGenie writes its place down after every step, so
+  at worst it re-asks the question you were on.)
+- **To continue in the same chat:** type **"resume"**.
+- **To continue in a new chat** (handy when a long chat gets slow or runs out
+  of room): start PlanGenie again in the same folder — `/plangenie` in Claude
+  Code, or paste `PLANGENIE.md` and say "resume from CHECKPOINT.md". It reads
+  only its own small state files, so the new chat has nearly all its room
+  free. It will not repeat questions you already answered.
+
+Where the place is kept: with a coding tool, in a small `CHECKPOINT.md` next
+to `PLAN.md` (plus `council/LOG.md` during the review). In a plain web chat
+that cannot save files, "pause" prints a RESUME BLOCK instead — copy it
+somewhere safe and paste it, together with `PLANGENIE.md`, into the new chat.
+
+One caution for Claude Code with the automated council: a GPT reviewer that
+is still working when you close or clear the session is cancelled by the
+Codex plugin. PlanGenie will offer to wait for it (usually minutes) or cancel
+it before pausing; a cancelled round is simply run again when you resume.
 
 ## Set up in your coding tool
 
@@ -189,3 +216,5 @@ Code version, send the `.claude/skills/plangenie/` folder along with
 | `.claude/skills/plangenie/SKILL.md` | Claude Code adapter (`/plangenie`) |
 | `.github/prompts/council-review.prompt.md` | Copilot reviewer-seat prompt for the council step |
 | `PLAN.md`, `UNKNOWNS.md` | Created per project while PlanGenie runs |
+| `CHECKPOINT.md` | Where PlanGenie is right now — lets "pause" / "resume" continue from the exact step |
+| `council/LOG.md` | The council's own progress record during the review step |
