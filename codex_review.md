@@ -218,3 +218,116 @@ The immediate priority is **complete recoverable state**, followed by consistent
 Verification this session confirmed valid JSON metadata, six core phases, and matching v6 compatibility markers across all four adapters/councils. Current Claude documentation supports the agent-file hot-reloading and effort-setting approach. [Official Claude documentation](https://code.claude.com/docs/en/sub-agents).
 
 `git diff --exit-code` returned **0**. Final Git status showed the same pre-existing untracked `.claude/settings.local.json`. No live planning workflow or fixes were executed.
+
+---
+
+# REVIEW ITERATION 3
+
+Third independent read-only review by Codex (GPT, via the Codex plugin),
+run on 2026-09-07 against commit `bba1f6a` on `main` (council protocol v7,
+after the fixes for REVIEW ITERATION 2 were merged). Same task as before:
+read `README.md`, parse every file in the repo, check that the codebase
+matches what the README says, and give an independent review of the idea
+and the tool for loopholes, bugs and misses. The text below is Codex's
+answer, unedited apart from making its file links repo-relative.
+
+---
+
+**The README broadly matches the current implementation, but its promises of exact recovery and reliable council completion are stronger than the protocol supports.** The interview and provenance design are useful; interruption handling and repeated reviews still have concrete gaps.
+
+I reviewed all **16 working-tree files**, including hidden adapters, reviewer definitions, metadata, tracking files, and previous reviews, plus the active Git hook. Git's internal history/object database was excluded. **No files were created or edited.**
+
+This is a prompt-based product: Markdown instructions are its implementation. Findings below distinguish instruction defects from behavior that still needs live testing.
+
+| README claim | Assessment |
+|---|---|
+| Intake, blindspots, adaptive interview, "wrap up" | Consistently specified |
+| Provenance tags, answer references, explicit unknowns | Specified; enforced only through model instructions |
+| Two-reviewer council and configurable stopping | Present, with lifecycle gaps |
+| Every concern gets a final disposition | Required, but reopening reviews can invalidate that bookkeeping |
+| Stop anywhere and resume exactly | Recovery defects remain |
+| Ordered build steps, dependencies, acceptance criteria | Required by the core prompt |
+| Claude/Copilot installation files | Present; earlier missing-dependency issues are addressed |
+| Universal operation across AI tools | Portable prompt exists; cross-platform reliability remains unverified |
+
+The main findings, in priority order:
+
+1. **High — An interruption can cause resume to skip newly approved fixes.**
+
+   Both automated councils save `FINAL REVIEW (m/m)` before recording the fresh document hash for applying those verdicts. If interrupted between those writes, the stored hashes still describe the preceding round.
+
+   Resume then sees the document matching the old "after" hash and says **"nothing to apply, advance the stage"**, although the user's new resolutions remain unapplied. An in-memory walkthrough of the prescribed branches reproduced that decision. The final-ledger guard conflicts with it, so recovery can skip work or stall.
+
+   **Recommendation:** Persist an identified resolution batch and its fresh baseline before publishing the resumable application stage; invalidate previous application hashes.
+
+   Evidence: [Claude final application](.claude/skills/council/SKILL.md:125), [Claude reconciliation](.claude/skills/council/SKILL.md:64), [Copilot equivalent](.github/prompts/council.prompt.md:391).
+
+2. **Medium — Recovery markers collide across repeated reviews.**
+
+   Final resolutions use markers such as `user approved, final review item 1`. Another final-review cycle starts numbering at 1 again, while the old marker remains in the document. Council point IDs also lack a run identifier.
+
+   During partial-application recovery, the old marker can make a **new** edit look already applied. The read-only counterexample confirmed that marker presence cannot distinguish those cases.
+
+   **Recommendation:** Use unique run, review-cycle, and edit identifiers; verify the expected resulting content as well as marker presence.
+
+   Evidence: [Core recovery markers](PLANGENIE.md:285), [Copilot marker comparison](.github/prompts/council.prompt.md:177).
+
+3. **Medium — "Run more rounds" conflicts with permanently frozen disagreements.**
+
+   The closing question promises to send open items back into debate. Elsewhere, deadlocked items are explicitly frozen and **never carried again**. There is no reopening transition.
+
+   Additionally, user verdicts update `FINAL.md`, while the authoritative `LEDGER` still points to the preceding round's merge file. A subsequent round or fresh-session resume can therefore use states from before the user's decisions.
+
+   **Recommendation:** Create an updated authoritative ledger before continuing, explicitly reopen the selected unresolved points, and persist the extended round limit.
+
+   Evidence: [Core freeze rule](PLANGENIE.md:542), [continuation promise](PLANGENIE.md:630), [Claude ledger construction](.claude/skills/council/SKILL.md:112).
+
+4. **Medium — Claude's "Start over" path skips active-council cleanup.**
+
+   The adapter archives the old run immediately. It does not first cancel its background reviewer jobs or restore temporarily modified reviewer-agent settings.
+
+   A new council can then record the abandoned council's temporary settings as the "original" values. Its eventual restoration preserves those wrong settings, while an old reviewer may continue consuming resources.
+
+   **Recommendation:** Route "Start over" through the existing abandonment procedure—cancel, restore, record abandonment—before archiving.
+
+   Evidence: [Start-over path](.claude/skills/plangenie/SKILL.md:24), [existing cleanup procedure](.claude/skills/council/SKILL.md:155).
+
+5. **Medium — Claude resume confuses the starting directory with the Git root.**
+
+   Output belongs under the directory where PlanGenie started. However, the council records the Git top-level directory as its workspace root and instructs recovery to work from there.
+
+   Starting in `repo/subproject/` creates `repo/subproject/planning/`; resolving the same relative paths during recovery from the Git root points to `repo/planning/`.
+
+   **Recommendation:** Record separate absolute paths for the artifact directory and the reviewer-job workspace.
+
+   Evidence: [Output location](.claude/skills/council/SKILL.md:10), [recorded root](.claude/skills/council/SKILL.md:46), [resume directory](.claude/skills/council/SKILL.md:154).
+
+6. **Medium — Incomplete packets and unsuccessful critiques lack a reliable recovery state.**
+
+   Copilot resume reuses an existing packet based on its presence. A write interrupted halfway can leave an incomplete packet. Reviewers are correctly instructed to stop on truncation, but collection does not explicitly require proof that a complete review occurred before accepting the reply.
+
+   This leaves an undefined path between a truncation notice, a saved critique, and the "no concerns raised" exit. **A false clean review is a risk, not a live-reproduced result.**
+
+   **Recommendation:** Validate packet completeness before dispatch and require an explicit completed-review result before counting a seat as collected.
+
+   Evidence: [Packet reuse](.github/prompts/council.prompt.md:167), [collection and failure handling](.github/prompts/council.prompt.md:253), [clean-review exit](.github/prompts/council.prompt.md:288).
+
+There are also smaller documentation and compatibility issues:
+
+- **Crash cleanup is overstated.** The [README](README.md:144) says crashes and usage limits cancel the GPT reviewer. The [council's own recovery instructions](.claude/skills/council/SKILL.md:160) correctly acknowledge that jobs may survive when session cleanup did not execute.
+- **Antigravity's recipe needs a migration note.** Its workflow size workaround is correct, but current official documentation says workflows retire **November 1, 2026**. New installation guidance should use skills. [README recipe](README.md:264), [official migration guide](https://antigravity.google/docs/migration/workflows-to-skills).
+- **Copilot model selection omits a prerequisite.** Official documentation restricts subagents from selecting a more expensive model than their parent. The setup should check this before promising automated seats; the existing fallback mitigates failure. [Model setup](.github/prompts/council.prompt.md:80), [official subagent documentation](https://code.visualstudio.com/docs/agents/run/subagents).
+- **Codex setup omits the restart step.** Its deprecated custom-prompt recipe otherwise matches current documentation. [README](README.md:249), [official custom-prompt instructions](https://learn.chatgpt.com/docs/custom-prompts).
+
+My independent assessment of the idea: **the strongest value is turning vague wishes into traceable requirements before implementation.** Teaching blindspots, separating approval from verification, and recording unanswered questions all serve that purpose.
+
+The main product gaps are:
+
+- **"Zero silent assumptions" is an objective, not an established guarantee.** Tags and self-audits depend on the same model following the instructions correctly. The final handoff also permits conservative improvisation with logging.
+- **User requirements need an explicit conflict rule.** Council edits are automatically applied, while the self-audit checks that each answer appears somewhere—even in Remaining Unknowns. It does not explicitly prevent a council suggestion from contradicting a preserved user requirement. Final acceptance mitigates this, but a requirement-conflict check would be stronger. [Apply rule](PLANGENIE.md:578), [self-audit](PLANGENIE.md:340).
+- **The council's added value remains unmeasured.** Compare it with the same interview followed by one independent review. Measure missed requirements, incorrect claims, implementation clarifications, user effort, elapsed time, and cost.
+- **The protocol needs repeatable evaluation more than additional prose.** Current v7 behavior is explicitly marked not field-tested. Retain fixtures for interruptions, changed answers, failed reviewers, repeat councils, and implementation handoffs. Historical tests do not establish current-version reliability. [Recorded status](next_session.md:6).
+
+Verification this session confirmed **six core phases, matching v7 markers across all four adapters/councils, all eight advertised product files present, and valid JSON metadata**. Both working-tree and staged `git diff --exit-code` checks returned **0**; the pre-existing untracked `.claude/settings.local.json` remained.
+
+**No live end-to-end workflow was run, and no fixes were applied.** CodeRabbit's CLI was unavailable; this report comes from direct inspection and independent agent reviews.
