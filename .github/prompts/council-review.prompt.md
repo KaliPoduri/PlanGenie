@@ -1,5 +1,5 @@
 ---
-mode: 'ask'
+agent: 'ask'
 description: 'Act as an independent reviewer seat for a PlanGenie council packet'
 ---
 

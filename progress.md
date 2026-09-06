@@ -4,6 +4,7 @@ Persistent scratchpad: decisions, blockers, test results. Newest entries at top 
 
 ## Current status
 
+- **2026-09-07 (later):** Codex review fixes applied (protocol v6): same-fix rule for round-1 agreement, cumulative ledger in merge files, reconcile-before-reapply with `DOC BEFORE/AFTER APPLY` hashes and `FINAL REVIEW (resolved)`, every point ID gets a final disposition, single-seat and no-concerns rules, LOG.md before agent-file pins with ownership rule, per-answer setup saves, document-identity check on resume, `git add` before pathspec commits, agent files shipped in `.claude/agents/`, README install/Antigravity/VS Code fixes, `(Qn)` provenance links + answer log, mandatory sequence/dependencies/acceptance/verification plan sections. Not field-tested.
 - **Phase:** Implementation complete (2026-07-04). All three artifacts written, structurally verified, committed. Remaining: user-run end-to-end tests (spec §7).
 - **Plan:** docs/superpowers/plans/2026-07-04-plangenie-implementation.md (commit 48bdca4).
 - **Artifacts:** PLANGENIE.md (84565de), .claude/skills/plangenie/SKILL.md (8dd8d25), README.md (cd4d68c).

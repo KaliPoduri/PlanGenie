@@ -21,9 +21,12 @@ unknown unknowns) before a single line of code exists.
 5. **Council review** — two other AIs critique the plan, hunt for made-up
    facts, and debate each other until they agree (you set the bar, for
    example 95% agreement, and a round limit); you decide only what they
-   could not settle, at the end.
-6. **Final plan** — a PLAN.md any AI coding agent can implement, with
-   deviation-logging instructions baked in.
+   could not settle, at the end. The percentage is how much of their debate
+   is settled, not a score for the plan — the leftovers they hand you are
+   what matters.
+6. **Final plan** — a PLAN.md any AI coding agent can implement: build
+   steps in order, what each step needs first, how to tell each feature is
+   done, and deviation-logging instructions baked in.
 
 ## Quick start — run it anywhere
 
@@ -84,8 +87,11 @@ Before round 1 it asks you three quick questions: the stop rule (keep going
 until the reviewers agree on 95% of the points, or a fixed number of
 rounds), the round limit (default 5), and which AI serves each seat. When the
 rule is met, it shows you the finished plan and only the leftovers — points
-the two reviewers could not settle, each with both sides in plain words —
-and you pick a side or leave them open. One last question: accept the plan,
+the two reviewers could not settle, each with both sides in plain words,
+plus anything still undecided when the rounds ran out, small points
+included — and you pick a side or leave them open. Nothing a reviewer
+raised is dropped on the way: every point ends up applied, withdrawn,
+rejected by you, or listed as open. One last question: accept the plan,
 or run more rounds. (In Claude Code with the Codex plugin the whole step
 runs by itself: you answer the setup questions, wait, and judge the
 leftovers.)
@@ -121,9 +127,11 @@ Where the place is kept: with a coding tool, in a small
 `planning/CHECKPOINT.md` next to `planning/PLAN.md` (plus
 `planning/council_state/LOG.md` during the review). In a plain web chat
 that cannot save files, PlanGenie instead prints a RESUME BLOCK at every
-phase boundary and whenever you type "pause" — copy it somewhere safe and
-paste it, together with `PLANGENIE.md`, into the new chat. Closing such a
-chat without a block loses the work since the last one.
+phase boundary, after every council round, and whenever you type "pause" —
+copy it somewhere safe and paste it, together with `PLANGENIE.md`, into the
+new chat. The block carries everything, the reviewers' debate included, so
+the new chat continues exactly; closing such a chat without a block loses
+the work since the last one.
 
 What a stop does to a reviewer that is still working (Claude Code with the
 automated council):
@@ -147,18 +155,31 @@ into the prompt, so nothing breaks.
 
 ### Claude Code
 
-*This project only* — nothing to do. The skill ships in this repo at
-`.claude/skills/plangenie/`. Start a session **in the repo folder** and type
+*This project only* — nothing to do. Everything ships in this repo: the
+`/plangenie` skill (`.claude/skills/plangenie/`), the `/council` skill it
+hands the review to (`.claude/skills/council/`), and the two reviewer-seat
+agent files (`.claude/agents/council-claude-seat.md` and
+`council-claude-seat-2.md`). Start a session **in the repo folder** and type
 `/plangenie`. (Starting the session in a parent or different folder is the
 usual reason the command shows as "unknown".)
 
-*Every project on your machine* — install it as a personal skill:
+*Every project on your machine* — install all four pieces as personal
+files; the council and the agent files are dependencies, not extras:
 
 1. Copy the folder `.claude/skills/plangenie/` to `~/.claude/skills/plangenie/`
    (on Windows: `C:\Users\<you>\.claude\skills\plangenie\`).
 2. Put a copy of `PLANGENIE.md` inside that same folder (the skill looks there
    first, because other projects won't have the file in their root).
-3. Start a new Claude Code session anywhere and type `/plangenie`.
+3. Copy the folder `.claude/skills/council/` to `~/.claude/skills/council/`.
+   Without it `/plangenie` cannot run the automated council and falls back
+   to relay mode.
+4. Copy the two files in `.claude/agents/` to `~/.claude/agents/`. They are
+   the read-only reviewer seats; without them a seat runs as a
+   general-purpose agent with no enforced read-only boundary.
+5. For the GPT seat, install the OpenAI Codex plugin for Claude Code
+   (`openai-codex`) and sign in to Codex once. Without it the council
+   offers a Claude-only review (two different Claude models) or relay mode.
+6. Start a new Claude Code session anywhere and type `/plangenie`.
 
 The Claude Code version keeps `PLAN.md` and `UNKNOWNS.md` as real files in a
 `planning/` folder under the directory you started from and, if
@@ -166,6 +187,9 @@ the OpenAI Codex plugin is installed, runs the council automatically: you pick
 the two models, their reasoning effort, the stop rule and the round limit up
 front; Claude and GPT then debate on their own, and you judge only the open
 items at the end. No Codex plugin? It offers Claude-only review or relay mode.
+One thing to know: the council pins the chosen model and effort into the two
+agent files while it runs and puts them back when it closes, so run one
+council at a time on a machine.
 
 ### Cursor
 
@@ -190,9 +214,14 @@ commands ([docs](https://code.visualstudio.com/docs/agent-customization/prompt-f
    the project root.
 2. In the Copilot Chat input (agent mode), type `/plangenie`.
 
-Note: this works in VS Code's Copilot Chat. The separate Copilot CLI does not
-support prompt files at the time of writing — paste `PLANGENIE.md` there
-instead.
+Note: this works in VS Code's Copilot Chat with the built-in agents that
+run inside VS Code. VS Code's documentation says agents running on the
+"Agent Host" (the hosted Copilot agent) do not use prompt files at all —
+for those, paste `PLANGENIE.md` or convert it to an agent skill. The
+separate Copilot CLI does not support prompt files either at the time of
+writing — paste `PLANGENIE.md` there instead. The prompt files use the
+`agent:` front-matter field that VS Code currently documents; if your VS
+Code is older and expects `mode:`, rename that one line.
 
 The three commands:
 
@@ -231,12 +260,26 @@ they still work; if yours ever stops appearing, paste the file instead.
 ### Google Antigravity
 
 Antigravity's "workflows" are saved prompts triggered with `/`
-([docs](https://antigravity.google/docs/rules-workflows)):
+([docs](https://antigravity.google/docs/ide/workflows/)). A workflow file
+is limited to 12,000 characters and `PLANGENIE.md` is about 39,000, so the
+workflow cannot hold the file itself; it points at it instead:
 
-1. In your workspace, create `.agent/workflows/plangenie.md` and paste the
-   file into it. (Some newer builds use `.agents/workflows/` — if the command
-   doesn't appear, try that spelling.)
-2. In the agent chat, type `/` and pick **plangenie**.
+1. Put a copy of `PLANGENIE.md` in the root of your workspace.
+2. Create `.agent/workflows/plangenie.md` (some newer builds use
+   `.agents/workflows/` — if the command doesn't appear, try that spelling)
+   containing only this:
+
+   ```
+   ---
+   description: PlanGenie — interview me about a software idea and produce an implementation plan
+   ---
+   Read the file PLANGENIE.md in the workspace root in full, in chunks if
+   it is long, and follow it exactly from its first line: you are
+   PlanGenie. If the file is missing, say so and stop — never reconstruct
+   it from memory. Then ask for my one-line project idea.
+   ```
+
+3. In the agent chat, type `/` and pick **plangenie**.
 
 ### Anything else (Windsurf, JetBrains AI, web chats, …)
 
@@ -246,8 +289,9 @@ install method — PlanGenie was designed to survive as a plain pasted prompt.
 ## Share it
 
 Email `PLANGENIE.md` to anyone. It is the whole product. To share the Claude
-Code version, send the `.claude/skills/plangenie/` folder along with
-`PLANGENIE.md` and point them at the setup steps above.
+Code version, send the `.claude/skills/plangenie/` and
+`.claude/skills/council/` folders and the `.claude/agents/` files along with
+`PLANGENIE.md`, and point them at the setup steps above.
 
 ## Files
 
@@ -256,13 +300,14 @@ Code version, send the `.claude/skills/plangenie/` folder along with
 | `PLANGENIE.md` | The portable agent — paste into any AI chat |
 | `.claude/skills/plangenie/SKILL.md` | Claude Code adapter (`/plangenie`) — hands the review step to the council skill |
 | `.claude/skills/council/SKILL.md` | Claude Code `/council` — the council on any document, also used by `/plangenie` |
+| `.claude/agents/council-claude-seat.md`, `council-claude-seat-2.md` | The two read-only Claude reviewer seats the council dispatches |
 | `.github/prompts/plangenie.prompt.md` | Copilot adapter (`/plangenie`) — hands the review step to `/council` |
 | `.github/prompts/council.prompt.md` | Copilot `/council` — the council on any document, also used by `/plangenie` |
 | `.github/prompts/council-review.prompt.md` | Copilot reviewer-seat prompt for a second chat |
 | `planning/` | Created in the folder you run PlanGenie from; everything it writes goes here |
 | `planning/PLAN.md`, `planning/UNKNOWNS.md` | The plan and the register of knowns and unknowns |
 | `planning/CHECKPOINT.md` | Where PlanGenie is right now — lets any stop continue from the exact step |
-| `planning/packets/` | The reviewers' debate: packets, critiques, merge files, `FINAL.md` |
+| `planning/packets/` | The reviewers' debate: packets, critiques, merge files (each one the running ledger of every point so far), `FINAL.md` |
 | `planning/council_state/` | `LOG.md` — where the council is, used to pause and resume it |
 | `planning/status/next_session.md` | One paragraph: where the run is and what happens next |
 | `planning/status/progress.md` | One line per milestone (phase entered, round applied, pause, resume, finished) |

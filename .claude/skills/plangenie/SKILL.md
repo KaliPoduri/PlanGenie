@@ -99,17 +99,23 @@ these Claude Code specifics:
 
 **Mechanics come from the council skill; content comes from PLANGENIE.md.**
 
-Read `~/.claude/skills/council/SKILL.md` and follow its Hard rules, Setup,
-Round protocol, Stopping and pausing, Resuming, and Cancelling sections exactly. The
-council skill text is authoritative for mechanics EXCEPT where the numbered
-overrides below contradict it — the overrides win. Do not paraphrase the
-mechanics here or from memory: read them. This adapter was written against
-the council skill's marker line `council-protocol: v5`; if that file shows a
-different version (or no marker), stop and tell the user the adapter needs
-review before running a council.
+Read the council skill and follow its Hard rules, Setup, Round protocol,
+Stopping and pausing, Resuming, and Cancelling sections exactly. Find it in
+this order and say which copy you are using:
+1. the copy bundled with the project: `.claude/skills/council/SKILL.md`
+   under the project root (it ships in this repo, so a clone has it);
+2. the personal install: `~/.claude/skills/council/SKILL.md`.
+The council skill text is authoritative for mechanics EXCEPT where the
+numbered overrides below contradict it — the overrides win. Do not
+paraphrase the mechanics here or from memory: read them. This adapter was
+written against the council skill's marker line `council-protocol: v6`; if
+that file shows a different version (or no marker), stop and tell the user
+the adapter needs review before running a council.
 
-If the council skill file is missing on this machine, say so and switch to
-PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
+If the council skill file is missing in both places, say so and switch to
+PLANGENIE.md relay mode. Do not improvise dispatch mechanics. The Codex
+plugin (`openai-codex`) is what provides the GPT seat; without it the
+council skill's step-3 fallback (Claude-only, or relay) applies.
 
 **Preflight (before round 1), in this order:**
 1. **Resume check first (classify only — nothing is moved, cancelled or
@@ -134,8 +140,10 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
    council skill's alias-independent snippet (`printf` + `sort -V`, never
    `ls`), confirm the file exists and `node "$COMPANION" status --json` exits
    0 (the smoke test that catches a broken path before any packet is written;
-   it needs no auth), confirm `node` runs, confirm the `council-claude-seat`
-   and `council-claude-seat-2` agent files exist in `~/.claude/agents/`, and
+   it needs no auth), confirm `node` runs, resolve the `council-claude-seat`
+   and `council-claude-seat-2` agent files exactly as the council skill's
+   Setup step 0 says (the project's `.claude/agents/` first — they ship in
+   this repo — then `~/.claude/agents/`), and
    check whether the project root is a git repository. (No live Codex auth probe — the first dispatch is the auth
    test, and override 3 handles that failure.)
 3. **Setup questions = consent:** run the council skill's Setup questions
@@ -144,8 +152,12 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
    minutes per Codex round; durations recorded in earlier LOG.md files are
    the best local estimate; a full council can exceed an hour) and says the
    seats will debate on their own. Answering them is the consent; nothing is
-   created, moved, or written before the answers are in. Then pin the Claude
-   seat agent files exactly as the council skill's Setup step 2 says.
+   created or moved before the answers are in — but each answer is written
+   to `CHECKPOINT.md`'s `Council: setup (…)` line the moment it arrives
+   (PLANGENIE.md's rule), so a stop between the two AskUserQuestion calls
+   loses nothing and a resume asks only the missing questions. The agent
+   files are NOT pinned yet: that happens in step 4, after LOG.md has
+   recorded their previous values.
 4. **Only then create/move artifacts:** perform the actions classified in
    step 1 — for an abandoned run, cancel its outstanding jobs and write its
    `STATUS: ABANDONED` line first; create `planning/packets/` and
@@ -155,10 +167,15 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
    step 1), move that run's debate files to
    `planning/packets/archive-<date-time>/` and its LOG.md to
    `planning/council_state/archive-<date-time>/` (same timestamp for both;
-   same-day reruns must not collide), and stage the git deletions of the moved files in the next
-   commit — the old paths were committed, and nothing else will ever stage
-   their removal (staging a deletion at `planning/packets/round-1-packet.md` does not
-   violate the archive-*/ exclusion). If the project root is not a git repository, AskUserQuestion —
+   same-day reruns must not collide), and include the moved files' old
+   paths in the next round commit's `git add` — the old paths were
+   committed, and nothing else will ever stage their removal (staging a
+   deletion at `planning/packets/round-1-packet.md` does not violate the
+   archive-*/ exclusion). Then write `planning/council_state/LOG.md` from the
+   answers recorded in `CHECKPOINT.md` (the council skill's Setup step 3 —
+   it records the agent files' current `model:`/`effort:` values) and only
+   then pin the agent files (its Setup step 4). If the project root is not a
+   git repository, AskUserQuestion —
    `git init` it, or run with file-only checkpoints (still write
    `planning/council_state/LOG.md` and `planning/status/next_session.md` each
    round; skip the commit).
@@ -187,12 +204,16 @@ PlanGenie overrides on top of the council skill's protocol:
    `council-claude-seat` (pinned at Setup to the chosen model and effort,
    read-only tools), seat 2 via `council-claude-seat-2` (pins a DIFFERENT
    Claude model, the same effort and read-only tools), each with the explicit `model:` on the
-   Agent call. Only if an agent file is missing fall back to `general-purpose`
+   Agent call. Only if an agent file is missing from BOTH `.claude/agents/`
+   and `~/.claude/agents/` fall back to `general-purpose`
    with an explicit different `model`, and say plainly that this seat runs at
    session effort and WITHOUT an enforced read-only tool boundary. If only one
    Claude model is available, say plainly the council is single-model. Record
    each seat's actual verification capabilities (its tools) in LOG.md rather
-   than a blanket label. The round protocol is otherwise unchanged.
+   than a blanket label. A round with one seat missing follows the council
+   skill's single-seat rule: the lone seat's new points are never applied on
+   its word alone; they stay carried and reach the user at the final review.
+   The round protocol is otherwise unchanged.
 4. **Merge, tally and apply per the council skill's step 4 — the seats
    decide, not the user.** No per-refinement AskUserQuestion. An edit the
    seats agreed on is applied to PLAN.md at once and tagged `[CANDIDATE]
@@ -206,25 +227,34 @@ PlanGenie overrides on top of the council skill's protocol:
    round; if the verdict is still missing, the point is deadlocked and the
    seat failed for the round; do not loop. Keep UNKNOWNS.md in sync after
    every apply (agreed items leave the register, deadlocked items are noted
-   as open). Round commits (and pause commits) are made
-   BY explicit pathspec — `git commit -m "..." -- planning/PLAN.md
-   planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_state/LOG.md
+   as open). Round 1 applies only what both seats fixed the same way — a
+   shared concern with two different fixes is carried, per the council
+   skill's step 4 — and every apply goes through the council skill's
+   reconciliation on a resume, so an interrupted apply is never repeated.
+   Round commits (and pause commits) are made BY explicit pathspec, staged
+   first: `git add -- <paths>` then `git commit -m "..." -- <the same
+   paths>`, where the paths are `planning/PLAN.md planning/UNKNOWNS.md
+   planning/CHECKPOINT.md planning/council_state/LOG.md
    planning/packets/round-N-*.md planning/status/next_session.md
-   planning/status/progress.md <archived paths whose deletion this run
-   staged>` — never
-   `planning/*/archive-*/`, so the user's unrelated staged work is left
-   untouched; review the set with `git status --short -- <the same paths>`
-   first.
+   planning/status/progress.md <old paths of files this run archived>`
+   (the `git add` is what makes new packet and critique files known to git
+   and stages the archived deletions) — never `planning/*/archive-*/`, so
+   the user's unrelated staged work is left untouched; review the set with
+   `git status --short -- <the same paths>` first.
 5. **Exit and final review:** the council skill's stop rule (its step 5)
    decides when the rounds end — there is no another-round question at
    round checkpoints, only the one-paragraph round summary. Then run the
    council skill's Final review: write `planning/packets/FINAL.md`, show the full
    current PLAN.md, ask the open items only (each with the seats' positions
    as options plus "leave open"), and the one closing question (accept, or
-   run more rounds). A resolution the user picks is applied and tagged
-   `[CONFIRMED] (user approved)`; every item left open is recorded in
-   PLAN.md's Remaining Unknowns as `[OPEN]` — at ANY exit, an early stop
-   included. Then Step 3.
+   run more rounds). The open items include every point still carried when
+   the rounds stopped, minor ones and refinements included — FINAL.md's
+   closing ledger lists every point ID with its final state. A resolution
+   the user picks is applied and tagged `[CONFIRMED] (user approved, final
+   review item k)`; every item left open is recorded in PLAN.md's Remaining
+   Unknowns as `[OPEN]` — at ANY exit, an early stop included. The council
+   skill's `FINAL REVIEW (resolved)` stage separates "resolutions applied"
+   from "closing question pending". Then Step 3.
 6. **Pause and resume inside the council:** any interrupt (Esc, Ctrl+C,
    session end, a crash) is a pause — the council skill's "Stopping and
    pausing" section says what happens to seats in flight, and Step 0 or
@@ -236,8 +266,9 @@ PlanGenie overrides on top of the council skill's protocol:
    THEN PLANGENIE.md's pause procedure writes `CHECKPOINT.md` (`Phase: 4`,
    `Council:` mirroring the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
    resume` from the same directory) reads `planning/council_state/LOG.md`, the current
-   round's critiques and `planning/packets/round-N-merge.md` (or `planning/packets/FINAL.md`
-   during the final review) only, and continues at the recorded stage —
+   round's critiques and `planning/packets/round-N-merge.md` (the cumulative
+   ledger of every point so far; or `planning/packets/FINAL.md` during the
+   final review) only, and continues at the recorded stage —
    setup answers and final-review verdicts already logged are never
    re-asked, and a round whose Codex job was lost is re-dispatched with its
    saved packet.
