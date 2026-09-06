@@ -14,21 +14,23 @@ bare file name below lives there). Check for it FIRST, before loading
 anything else, so a fresh session spends its context on the plan, not on
 re-orientation. A `CHECKPOINT.md` or `council/` sitting at the directory
 root instead belongs to a run from before the `planning/` layout: say so
-and offer to move them into `planning/` and `planning/packets/` before
+and offer to move them into `planning/` (packets to `planning/packets/`,
+the rest of `council/` to `planning/council_tracking/`) before
 resuming — never move them silently.
 
 - **`CHECKPOINT.md` exists and its `Status:` is `IN PROGRESS` or `PAUSED`:**
   read it (it is short), state in one line where the run stopped (its `Phase`,
   `Step` and `Next` lines) and AskUserQuestion: **Resume from there
   (recommended)** / **Start over** (the old run's files in `planning/` —
-  `PLAN.md`, `UNKNOWNS.md`, `CHECKPOINT.md`, `packets/`, `status/` — are
+  `PLAN.md`, `UNKNOWNS.md`, `CHECKPOINT.md`, `packets/`,
+  `council_tracking/`, `status/` — are
   moved to `planning/archive-<date-time>/` first; nothing is deleted) /
   **Something else**. `/plangenie resume` skips
   the question and resumes directly. On resume: load `PLANGENIE.md` (Step 1's
   lookup), then follow its "Pause and resume" section exactly — it lists the
   only files to read per phase; do not read anything else and never rebuild
   state from the transcript. If the checkpoint says Phase 4 with the
-  automated council, the council stage comes from `planning/packets/LOG.md` via the
+  automated council, the council stage comes from `planning/council_tracking/LOG.md` via the
   council skill's Resuming section (Step 2) — `CHECKPOINT.md` only mirrors it.
 - **`Status: FINISHED`:** say the plan was finished on the recorded date and
   AskUserQuestion: revise this plan (re-enter Phase 4 or edit) / start a new
@@ -82,7 +84,7 @@ these Claude Code specifics:
 - **Any interrupt is a pause.** While PlanGenie is working — above all
   during a council round, which is one long turn — the user cannot type
   anything it will act on; Esc (or Ctrl+C, closing the window, /clear, a
-  crash) is the stop, and `CHECKPOINT.md` plus `planning/packets/LOG.md` are at most
+  crash) is the stop, and `CHECKPOINT.md` plus `planning/council_tracking/LOG.md` are at most
   one step stale. Tell the user this once, when the interview starts, in
   one sentence: "press Esc to stop at any time; run `/plangenie resume` to
   continue" (the council skill's Setup preface repeats it with the
@@ -110,7 +112,7 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
 
 **Preflight (before round 1), in this order:**
 1. **Resume check first (classify only — nothing is moved, cancelled or
-   written in this step):** if `planning/packets/LOG.md` exists and its last `STATUS:`
+   written in this step):** if `planning/council_tracking/LOG.md` exists and its last `STATUS:`
    line is not `CLOSED` or `ABANDONED` — `IN PROGRESS (…)` and `PAUSED (…)`
    both count — (or it has no `STATUS:` line but shows a dispatched round
    without recorded results), this is an interrupted or paused run —
@@ -122,8 +124,9 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
    declares the interrupted run abandoned, note that decision now; the
    cancellation of outstanding jobs and the `STATUS: ABANDONED` LOG write
    happen in step 4 — the run then counts as completed for archival. If
-   `planning/packets/` has files but no LOG.md, classify it as a completed foreign
-   run: ALL its root contents, whatever their names, are moved in step 4 —
+   `planning/packets/` or `planning/council_tracking/` has files but no
+   LOG.md, classify it as a completed foreign run: ALL the root contents of
+   both folders, whatever their names, are moved in step 4 —
    this branch needs no LOG.md evidence and is not limited to step 4's named
    file set.
 2. **Read-only environment checks:** resolve the companion path with the
@@ -144,18 +147,19 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
    seat agent files exactly as the council skill's Setup step 2 says.
 4. **Only then create/move artifacts:** perform the actions classified in
    step 1 — for an abandoned run, cancel its outstanding jobs and write its
-   `STATUS: ABANDONED` line first; create `planning/packets/` if missing; if it holds
-   files from a previous COMPLETED run (LOG.md `STATUS: CLOSED` or
-   `ABANDONED` — never merely "last round finished" — or the no-LOG.md
-   foreign-run case from step 1), move
-   that run's packets, critiques, and LOG.md together to
-   `planning/packets/archive-<date-time>/` (timestamped — same-day reruns must not
+   `STATUS: ABANDONED` line first; create `planning/packets/` and
+   `planning/council_tracking/` if missing; if they hold files from a
+   previous COMPLETED run (LOG.md `STATUS: CLOSED` or `ABANDONED` — never
+   merely "last round finished" — or the no-LOG.md foreign-run case from
+   step 1), move that run's packets, critiques, merge files, FINAL.md and
+   LOG.md together to
+   `planning/council_tracking/archive-<date-time>/` (timestamped — same-day reruns must not
    collide), and stage the git deletions of the moved files in the next
    commit — the old paths were committed, and nothing else will ever stage
    their removal (staging a deletion at `planning/packets/round-1-packet.md` does not
    violate the archive-*/ exclusion). If the project root is not a git repository, AskUserQuestion —
    `git init` it, or run with file-only checkpoints (still write
-   `planning/packets/LOG.md` and `planning/status/next_session.md` each
+   `planning/council_tracking/LOG.md` and `planning/status/next_session.md` each
    round; skip the commit).
 
 PlanGenie overrides on top of the council skill's protocol:
@@ -203,17 +207,17 @@ PlanGenie overrides on top of the council skill's protocol:
    every apply (agreed items leave the register, deadlocked items are noted
    as open). Round commits (and pause commits) are made
    BY explicit pathspec — `git commit -m "..." -- planning/PLAN.md
-   planning/UNKNOWNS.md planning/CHECKPOINT.md planning/packets/LOG.md
-   planning/packets/round-N-*.md planning/status/next_session.md
+   planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_tracking/LOG.md
+   planning/packets/round-N-*.md planning/council_tracking/round-N-*.md planning/status/next_session.md
    planning/status/progress.md <archived paths whose deletion this run
    staged>` — never
-   `planning/packets/archive-*/`, so the user's unrelated staged work is left
+   `planning/council_tracking/archive-*/`, so the user's unrelated staged work is left
    untouched; review the set with `git status --short -- <the same paths>`
    first.
 5. **Exit and final review:** the council skill's stop rule (its step 5)
    decides when the rounds end — there is no another-round question at
    round checkpoints, only the one-paragraph round summary. Then run the
-   council skill's Final review: write `planning/packets/FINAL.md`, show the full
+   council skill's Final review: write `planning/council_tracking/FINAL.md`, show the full
    current PLAN.md, ask the open items only (each with the seats' positions
    as options plus "leave open"), and the one closing question (accept, or
    run more rounds). A resolution the user picks is applied and tagged
@@ -223,15 +227,15 @@ PlanGenie overrides on top of the council skill's protocol:
 6. **Pause and resume inside the council:** any interrupt (Esc, Ctrl+C,
    session end, a crash) is a pause — the council skill's "Stopping and
    pausing" section says what happens to seats in flight, and Step 0 or
-   `/council resume` continues from `planning/packets/LOG.md`. The typed word
+   `/council resume` continues from `planning/council_tracking/LOG.md`. The typed word
    `pause` (at a setup question, a final-review verdict, a fallback choice,
    or as the first message after an Esc) runs that same section — which
    records the state of any Codex job, writes `STATUS: PAUSED (round N,
-   <stage>)` and the `RESUME:` line to `planning/packets/LOG.md`, and commits — and
+   <stage>)` and the `RESUME:` line to `planning/council_tracking/LOG.md`, and commits — and
    THEN PLANGENIE.md's pause procedure writes `CHECKPOINT.md` (`Phase: 4`,
    `Council:` mirroring the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
-   resume` from the same directory) reads `planning/packets/LOG.md`, the current
-   round's critiques and `planning/packets/round-N-merge.md` (or `planning/packets/FINAL.md`
+   resume` from the same directory) reads `planning/council_tracking/LOG.md`, the current
+   round's critiques and `planning/council_tracking/round-N-merge.md` (or `planning/council_tracking/FINAL.md`
    during the final review) only, and continues at the recorded stage —
    setup answers and final-review verdicts already logged are never
    re-asked, and a round whose Codex job was lost is re-dispatched with its

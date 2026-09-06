@@ -119,7 +119,7 @@ reviewers are debating, anywhere — and continue later from that exact spot.
 
 Where the place is kept: with a coding tool, in a small
 `planning/CHECKPOINT.md` next to `planning/PLAN.md` (plus
-`planning/packets/LOG.md` during the review). In a plain web chat
+`planning/council_tracking/LOG.md` during the review). In a plain web chat
 that cannot save files, PlanGenie instead prints a RESUME BLOCK at every
 phase boundary and whenever you type "pause" — copy it somewhere safe and
 paste it, together with `PLANGENIE.md`, into the new chat. Closing such a
@@ -205,7 +205,7 @@ The three commands:
   limit; runs the rounds as Copilot subagents when your Copilot has them,
   and otherwise tells you which packet file to carry to a second chat;
   applies what both seats agree on; asks you only about the open items at
-  the end; and keeps `planning/packets/LOG.md` so a stop and a later `/council` on
+  the end; and keeps `planning/council_tracking/LOG.md` so a stop and a later `/council` on
   the same file resume where it stopped.
 - `/council-review` — the reviewer seat for that second chat: pick a
   DIFFERENT model from the model picker, type `/council-review`, and attach
@@ -262,6 +262,7 @@ Code version, send the `.claude/skills/plangenie/` folder along with
 | `planning/` | Created in the folder you run PlanGenie from; everything it writes goes here |
 | `planning/PLAN.md`, `planning/UNKNOWNS.md` | The plan and the register of knowns and unknowns |
 | `planning/CHECKPOINT.md` | Where PlanGenie is right now — lets any stop continue from the exact step |
-| `planning/packets/` | Everything the council writes: packets, critiques, merge files, `LOG.md` (its progress record), `FINAL.md` |
+| `planning/packets/` | Only the council packets — the files a reviewer is handed |
+| `planning/council_tracking/` | The council's own records: `LOG.md` (its progress, used for pause/resume), critiques, merge files, `FINAL.md` |
 | `planning/status/next_session.md` | One paragraph: where the run is and what happens next |
 | `planning/status/progress.md` | One line per milestone (phase entered, round applied, pause, resume, finished) |

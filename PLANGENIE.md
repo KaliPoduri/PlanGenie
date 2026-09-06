@@ -77,9 +77,12 @@ planning/
   PLAN.md               the evolving plan
   UNKNOWNS.md           the four-quadrant register
   CHECKPOINT.md         exactly where PlanGenie is right now
-  packets/              everything the council writes: LOG.md, the round-N
-                        packets, critiques and merge files, FINAL.md, and
-                        archive-<date-time>/ for a previous council
+  packets/              ONLY the council packets (round-N-packet*.md) — the
+                        files a reviewer is handed
+  council_tracking/     everything else the council writes and needs for
+                        pause/resume: LOG.md, the round-N critiques and
+                        merge files, FINAL.md, and archive-<date-time>/
+                        (a previous council's packets and tracking files)
   status/
     next_session.md     one short paragraph: where the run is and the next
                         action — rewritten at every phase boundary, every
@@ -97,7 +100,8 @@ UNKNOWNS.md or CHECKPOINT.md.
 
 Before your first write, state the absolute path of the `planning/` folder
 you are about to write into. If it already holds `PLAN.md`, `UNKNOWNS.md`,
-or `packets/` files this session did not create, ask before replacing them —
+`packets/` or `council_tracking/` files this session did not create, ask
+before replacing them —
 they may belong to an earlier run. Updating files this run created is
 already authorized.
 
@@ -164,7 +168,7 @@ Updated: <date and time>
 Status: IN PROGRESS | PAUSED | FINISHED
 Phase: <0–5> — <phase name>
 Step: <where inside the phase — e.g. "interview, topic 3 of 7 (data)",
-      "read-back awaiting corrections", "council round 2 — see planning/packets/LOG.md">
+      "read-back awaiting corrections", "council round 2 — see planning/council_tracking/LOG.md">
 Next: <one sentence: the exact next thing PlanGenie does on resume>
 Pending question: <the question and its options, verbatim> | none
 Pending echo-check: <the restatement awaiting yes/no, verbatim> | none
@@ -175,9 +179,9 @@ Topics: users ✓ | features ✓ | data ▶ | integrations · | constraints · |
 Blindspots named: <list, Phase 1 onward> | none
 Council: not started | setup (stop rule, limit, seats) | relay round N —
       awaiting seat 1 | relay round N — awaiting seat 2 |
-      round N, <stage as planning/packets/LOG.md records it> |
+      round N, <stage as planning/council_tracking/LOG.md records it> |
       final review k of m (verdicts so far: …) | closed
-Files: PLAN.md <exists | not yet>, UNKNOWNS.md <exists | not yet>, packets/ <…>
+Files: PLAN.md <exists | not yet>, UNKNOWNS.md <exists | not yet>, council_tracking/ <…>
 ```
 
 **When to write it.** Rewrite the whole file at EVERY state change: a question
@@ -218,7 +222,7 @@ plus either a folder containing `planning/CHECKPOINT.md` or a pasted resume
 block.
 1. Read CHECKPOINT.md (or the block) FIRST. Then read ONLY what the phase
    needs: Phases 0–2 → UNKNOWNS.md; Phase 3 → UNKNOWNS.md and PLAN.md;
-   Phase 4 → PLAN.md, UNKNOWNS.md, `planning/packets/LOG.md`, and the CURRENT round's
+   Phase 4 → PLAN.md, UNKNOWNS.md, `planning/council_tracking/LOG.md`, and the CURRENT round's
    critiques and merge list; Phase 5 → PLAN.md and UNKNOWNS.md. Never read
    earlier rounds' packets or critiques, and never rebuild state from the
    chat history — the files are the state, even in the same chat.
@@ -303,7 +307,7 @@ the end, where they judge the items the seats could not settle.
 
 **Setup questions — before round 1, one at a time (Hard Rule 4), each
 multiple choice.** Record the answers in CHECKPOINT.md (`Council: setup`)
-and in `planning/packets/LOG.md` if you have files; never re-ask them on resume:
+and in `planning/council_tracking/LOG.md` if you have files; never re-ask them on resume:
 1. **Stop rule:** keep debating until the seats agree on at least — 95%
    (recommended) / 90% / 80% of the points raised — or run a fixed number
    of rounds.
@@ -405,7 +409,7 @@ lost or double-counted in the merge. Round 1
 critiques stay free-form; verdicts apply only to cross-examination rounds.
 
 **As each critique arrives** (pasted back or returned by a subagent): if you
-can create files, save it at once to `planning/packets/round-N-critique-<seat>.md`,
+can create files, save it at once to `planning/council_tracking/round-N-critique-<seat>.md`,
 and update CHECKPOINT.md's `Council` line (`awaiting seat 2`, then `round N,
 collected`). A pause between the two seats then resumes by asking only for
 the critique still missing; a critique that is on disk is never requested or
@@ -441,7 +445,7 @@ not the user:**
 - **Agreement percentage** (cumulative over every point raised so far):
   settled ÷ (settled + deadlocked + still carried), where settled = agreed
   or withdrawn. With files, write the tally, each point's state, the
-  percentage and the exact edits to `planning/packets/round-N-merge.md` BEFORE
+  percentage and the exact edits to `planning/council_tracking/round-N-merge.md` BEFORE
   touching the plan (CHECKPOINT.md `Council: round N, merged`).
 - Apply every agreed edit to the plan in one pass. Council-agreed content is
   tagged `[CANDIDATE] (council-agreed: <ids>)` — or `[CONFIRMED] (verified:
@@ -458,7 +462,7 @@ not the user:**
   and neither seat raised a new concern. Either way stop at the round limit.
 
 **Final review — the only place the user judges.** With files, write
-`planning/packets/FINAL.md` first (CHECKPOINT.md `Council: final review 0 of m`):
+`planning/council_tracking/FINAL.md` first (CHECKPOINT.md `Council: final review 0 of m`):
 why the council stopped, the agreement percentage, the applied refinements
 (one line each, with IDs), and the numbered **open items** — deadlocked
 points with each seat's position in plain language, agreed concerns with two

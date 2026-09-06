@@ -19,7 +19,8 @@ bare file name below lives there). Check for it before reading anything
 else, so a fresh chat spends its room on the plan. A `CHECKPOINT.md` or
 `council/` at the workspace root instead belongs to a run from before the
 `planning/` layout: say so and offer to move them into `planning/` and
-`planning/packets/` before resuming — never move them silently.
+`planning/packets/` (packets) and `planning/council_tracking/` (the rest of
+`council/`) before resuming — never move them silently.
 
 - **`CHECKPOINT.md` exists with `Status: IN PROGRESS` or `PAUSED`:** read it
   (it is short), say in one line where the run stopped (its `Phase`, `Step`
@@ -31,7 +32,7 @@ else, so a fresh chat spends its room on the plan. A `CHECKPOINT.md` or
   (Step 1), then follow its "Pause and resume" section exactly — it lists
   the only files to read per phase; never rebuild state from chat history.
   If the checkpoint says Phase 4, the council's own stage comes from
-  `planning/packets/LOG.md` via the `/council` prompt's Step 0 — `CHECKPOINT.md` only
+  `planning/council_tracking/LOG.md` via the `/council` prompt's Step 0 — `CHECKPOINT.md` only
   mirrors it.
 - **`Status: FINISHED`:** say the plan was finished on the recorded date and
   ask: revise this plan (re-enter Phase 4 or edit) / start a new plan (in a
@@ -91,7 +92,7 @@ improvise council mechanics.
 
 **Preflight, in this order:**
 
-1. **Resume check (classify only):** if `planning/packets/LOG.md` exists and its last
+1. **Resume check (classify only):** if `planning/council_tracking/LOG.md` exists and its last
    `STATUS:` line is not `CLOSED` or `ABANDONED`, this is an interrupted or
    paused council — follow the `/council` prompt's Step 0. A finished round
    is NOT a finished council. Archive nothing yet.
@@ -103,9 +104,10 @@ improvise council mechanics.
    Step 1 says (subagents available and models pinnable → automated;
    otherwise relay, where the user carries each packet file to a second
    chat with `/council-review`). Ask before creating any seat agent files.
-4. **Only then:** create `planning/packets/`; if it holds a previous COMPLETED run
-   (LOG.md `STATUS: CLOSED` or `ABANDONED`), move that run's files to
-   `planning/packets/archive-<date-time>/` first.
+4. **Only then:** create `planning/packets/` and `planning/council_tracking/`;
+   if they hold a previous COMPLETED run (LOG.md `STATUS: CLOSED` or
+   `ABANDONED`), move that run's packets and tracking files to
+   `planning/council_tracking/archive-<date-time>/` first.
 
 **PlanGenie overrides on top of the `/council` protocol:**
 
@@ -130,11 +132,11 @@ improvise council mechanics.
    check it next round, or record it in UNKNOWNS.md as an open verification
    item. Keep UNKNOWNS.md in sync after every apply. If the workspace is a
    git repository, commit each round by explicit pathspec only:
-   `git commit -m "council: round N" -- planning/PLAN.md planning/UNKNOWNS.md planning/CHECKPOINT.md planning/packets/LOG.md planning/packets/round-N-*.md planning/status/next_session.md planning/status/progress.md`.
+   `git commit -m "council: round N" -- planning/PLAN.md planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_tracking/LOG.md planning/packets/round-N-*.md planning/council_tracking/round-N-*.md planning/status/next_session.md planning/status/progress.md`.
 5. **CHECKPOINT.md mirrors LOG.md:** at every council stage change, rewrite
    `CHECKPOINT.md` with `Phase: 4` and a `Council:` line equal to LOG.md's
    current `STATUS:`. For the council's stage, LOG.md wins.
-6. **Final review** per the `/council` prompt's Step 4: `planning/packets/FINAL.md`
+6. **Final review** per the `/council` prompt's Step 4: `planning/council_tracking/FINAL.md`
    first, the full PLAN.md shown, only the open items asked, then the one
    closing question. A resolution the user picks is applied and tagged
    `[CONFIRMED] (user approved)`; every item left open goes into PLAN.md's
@@ -152,9 +154,11 @@ resume.
 ## Hard rules
 
 - The only files you create or edit are `PLAN.md`, `UNKNOWNS.md`,
-  `CHECKPOINT.md`, files under `planning/packets/`, and — with permission — the seat
+  `CHECKPOINT.md`, files under `planning/packets/`,
+  `planning/council_tracking/` and `planning/status/`, and — with
+  permission — the seat
   agent files the `/council` prompt describes.
 - Never simulate a reviewer seat and never present a council-agreed edit as
   user-approved.
-- Never rebuild state from chat history: `CHECKPOINT.md` and `planning/packets/LOG.md`
+- Never rebuild state from chat history: `CHECKPOINT.md` and `planning/council_tracking/LOG.md`
   are the state, even in the same chat.
