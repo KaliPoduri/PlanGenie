@@ -13,8 +13,8 @@ unknown unknowns) before a single line of code exists.
 1. **Intake** — you give a one-line idea and say how technical you are.
 2. **Blindspots** — it first teaches you what people typically overlook.
 3. **Interview** — one plain-English question at a time, multiple choice,
-   8–20 questions, quit anytime with "wrap up", or say "pause" and pick up
-   later exactly where you left off.
+   8–20 questions, quit anytime with "wrap up", or stop at any moment and
+   pick up later exactly where you left off.
 4. **Draft plan** — every line tagged with where it came from
    (`[USER]` / `[CONFIRMED]` / `[CANDIDATE]` / `[OPEN]`); no unverified
    tool names stated as fact.
@@ -101,26 +101,34 @@ what to verify and what to ask you about instead of guessing. Keep
 You can stop at any moment — in the middle of the interview, while the
 reviewers are debating, anywhere — and continue later from that exact spot.
 
-- **To stop:** type **"pause"**. PlanGenie saves where it is and prints
-  three lines telling you how to come back. (Closing the window or losing
-  the chat also works: PlanGenie writes its place down after every step, so
-  at worst it re-asks the question you were on.)
+- **To stop:** just stop. Press Esc in Claude Code, the Stop button in
+  Copilot or Cursor, or close the window. PlanGenie writes its place down
+  before every step, so at worst it re-asks the question you were on. You do
+  not need to type anything first. (When PlanGenie is waiting for an answer,
+  you can also type **"pause"** — it then prints three lines saying where it
+  stopped and how to come back.)
 - **To continue in the same chat:** type **"resume"**.
 - **To continue in a new chat** (handy when a long chat gets slow or runs out
   of room): start PlanGenie again in the same folder — `/plangenie` in Claude
-  Code, or paste `PLANGENIE.md` and say "resume from CHECKPOINT.md". It reads
-  only its own small state files, so the new chat has nearly all its room
-  free. It will not repeat questions you already answered.
+  Code or Copilot, or paste `PLANGENIE.md` and say "resume from
+  CHECKPOINT.md". It reads only its own small state files, so the new chat
+  has nearly all its room free. It will not repeat questions you already
+  answered.
 
 Where the place is kept: with a coding tool, in a small `CHECKPOINT.md` next
 to `PLAN.md` (plus `council/LOG.md` during the review). In a plain web chat
-that cannot save files, "pause" prints a RESUME BLOCK instead — copy it
-somewhere safe and paste it, together with `PLANGENIE.md`, into the new chat.
+that cannot save files, PlanGenie instead prints a RESUME BLOCK at every
+phase boundary and whenever you type "pause" — copy it somewhere safe and
+paste it, together with `PLANGENIE.md`, into the new chat. Closing such a
+chat without a block loses the work since the last one.
 
-One caution for Claude Code with the automated council: a GPT reviewer that
-is still working when you close or clear the session is cancelled by the
-Codex plugin. PlanGenie will offer to wait for it (usually minutes) or cancel
-it before pausing; a cancelled round is simply run again when you resume.
+What a stop does to a reviewer that is still working (Claude Code with the
+automated council):
+
+| How you stopped | What happens |
+|---|---|
+| Esc, session still open | The GPT reviewer keeps working in the background; "resume" collects its answer |
+| Closed or cleared the session, crash, usage limit | The Codex plugin cancels that reviewer; the round is simply run again when you resume. Everything else is kept |
 
 ## Set up in your coding tool
 
@@ -129,9 +137,10 @@ prompt so you can start it with one slash command instead of pasting. In each
 recipe, "the file" means the **full contents of `PLANGENIE.md`**.
 
 One difference to know: the **automated** council (two AIs reviewing without
-your help) exists only in Claude Code. In every other tool, PlanGenie notices
-it can't call other models and automatically falls back to relay mode — that
-behavior is built into the prompt, so nothing breaks.
+your help) exists in Claude Code and, when your Copilot has subagents, in
+GitHub Copilot. In every other tool, PlanGenie notices it can't call other
+models and automatically falls back to relay mode — that behavior is built
+into the prompt, so nothing breaks.
 
 ### Claude Code
 
@@ -170,32 +179,37 @@ Cursor turns Markdown files in a `commands` folder into slash commands
 Copilot Chat supports "prompt files" — Markdown prompts invoked as slash
 commands ([docs](https://code.visualstudio.com/docs/agent-customization/prompt-files)):
 
-1. In your repo, create `.github/prompts/plangenie.prompt.md` and paste the
-   file into it. (Or run the **Chat: New Prompt File** command in VS Code and
-   choose *user* storage to make it available in all projects.)
-2. In the Copilot Chat input, type `/plangenie`.
+1. Copy the folder `.github/prompts/` from this repo into your project. It
+   holds `plangenie.prompt.md`, `council.prompt.md` and
+   `council-review.prompt.md`. Put a copy of `PLANGENIE.md` in that same
+   `.github/prompts/` folder — `/plangenie` looks for it there first, then in
+   the project root.
+2. In the Copilot Chat input (agent mode), type `/plangenie`.
 
 Note: this works in VS Code's Copilot Chat. The separate Copilot CLI does not
-support prompt files at the time of writing — paste the file there instead.
+support prompt files at the time of writing — paste `PLANGENIE.md` there
+instead.
 
-This repo also ships two more Copilot commands in `.github/prompts/`
-(Copilot finds them automatically when this folder is open in VS Code):
+The three commands:
 
-- `/council-review` — the reviewer seat. Open a second Copilot chat, pick a
-  DIFFERENT model from the model picker, type `/council-review`, and attach
-  the packet file PlanGenie saved.
-- `/council` — the whole council on its own, for an existing plan or document
-  without running PlanGenie: type `/council`, attach the file, optionally add
-  a round count (default 3, max 5). It asks which two models to use, runs the
-  rounds (automatically when Copilot subagents are available, otherwise it
-  tells you which packet to carry to a second chat with `/council-review`),
-  applies what both seats agree on, asks you only about the open items at
-  the end, and keeps `council/LOG.md` so `pause` and a later `/council` on
+- `/plangenie` — the whole flow. The interview and the plan come from
+  `PLANGENIE.md`; the review step is handed to `/council`, so the council
+  logic lives in one place.
+- `/council` — the council on its own, for any existing plan or document:
+  type `/council` and attach the file. It asks which two models to use, the
+  reasoning effort, the stop rule (for example 95% agreement) and a round
+  limit; runs the rounds as Copilot subagents when your Copilot has them,
+  and otherwise tells you which packet file to carry to a second chat;
+  applies what both seats agree on; asks you only about the open items at
+  the end; and keeps `council/LOG.md` so a stop and a later `/council` on
   the same file resume where it stopped.
+- `/council-review` — the reviewer seat for that second chat: pick a
+  DIFFERENT model from the model picker, type `/council-review`, and attach
+  the packet file.
 
-Neither is field-tested yet — if a command does not appear, check that
-"Chat: Prompt Files" is enabled in VS Code settings; pasting the packet works
-as always.
+None of the three is field-tested yet — if a command does not appear, check
+that "Chat: Prompt Files" is enabled in VS Code settings; pasting
+`PLANGENIE.md` works as always.
 
 ### OpenAI Codex (CLI and IDE extension)
 
@@ -236,9 +250,11 @@ Code version, send the `.claude/skills/plangenie/` folder along with
 | File | What it is |
 |---|---|
 | `PLANGENIE.md` | The portable agent — paste into any AI chat |
-| `.claude/skills/plangenie/SKILL.md` | Claude Code adapter (`/plangenie`) |
-| `.github/prompts/council-review.prompt.md` | Copilot reviewer-seat prompt for the council step |
-| `.github/prompts/council.prompt.md` | Copilot `/council` — run the council alone on any existing document |
+| `.claude/skills/plangenie/SKILL.md` | Claude Code adapter (`/plangenie`) — hands the review step to the council skill |
+| `.claude/skills/council/SKILL.md` | Claude Code `/council` — the council on any document, also used by `/plangenie` |
+| `.github/prompts/plangenie.prompt.md` | Copilot adapter (`/plangenie`) — hands the review step to `/council` |
+| `.github/prompts/council.prompt.md` | Copilot `/council` — the council on any document, also used by `/plangenie` |
+| `.github/prompts/council-review.prompt.md` | Copilot reviewer-seat prompt for a second chat |
 | `PLAN.md`, `UNKNOWNS.md` | Created per project while PlanGenie runs |
-| `CHECKPOINT.md` | Where PlanGenie is right now — lets "pause" / "resume" continue from the exact step |
+| `CHECKPOINT.md` | Where PlanGenie is right now — lets any stop continue from the exact step |
 | `council/LOG.md` | The council's own progress record during the review step |

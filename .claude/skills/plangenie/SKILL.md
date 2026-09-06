@@ -32,7 +32,8 @@ the plan, not on re-orientation.
 
 A run that ended abruptly (Esc, Ctrl+C, /clear, a crash, a usage cutoff)
 shows `Status: IN PROGRESS` — resume it exactly like a paused one; the
-checkpoint is at most one step old (PLANGENIE.md's write cadence).
+checkpoint is at most one step old (PLANGENIE.md's write cadence). Any stop
+is a pause: never tell the user they should have typed `pause` first.
 
 ## Step 1: Load the core prompt
 
@@ -61,26 +62,35 @@ these Claude Code specifics:
 - Use the AskUserQuestion tool for multiple-choice interview questions, for
   the council's setup questions, and for the final-review verdicts on open
   items (there are no per-refinement verdicts). The user may answer any of
-  them with `pause` (via "Other") or send `pause` as a plain message; follow
-  PLANGENIE.md's pause procedure and STOP — no further question in that turn.
-  In Phase 4 with the automated council, the council skill's "Pausing on
-  request" section runs first (it decides what happens to seats in flight),
-  then the PLANGENIE.md pause procedure writes `CHECKPOINT.md`.
-- After a `pause`, `resume` or `continue` in the same session goes through
-  Step 0's resume path (re-read `CHECKPOINT.md`; do not trust memory). In a
-  fresh session the user runs `/plangenie` or `/plangenie resume` in the same
-  directory.
+  them with `pause` (via "Other"), or reply `pause` as a plain message when
+  PlanGenie is waiting on them; follow PLANGENIE.md's pause procedure and
+  STOP — no further question in that turn. In Phase 4 with the automated
+  council, the council skill's "Stopping and pausing" section runs first
+  (it records the state of any seat in flight), then the PLANGENIE.md pause
+  procedure writes `CHECKPOINT.md`.
+- **Any interrupt is a pause.** While PlanGenie is working — above all
+  during a council round, which is one long turn — the user cannot type
+  anything it will act on; Esc (or Ctrl+C, closing the window, /clear, a
+  crash) is the stop, and `CHECKPOINT.md` plus `council/LOG.md` are at most
+  one step stale. Tell the user this once, when the interview starts, in
+  one sentence: "press Esc to stop at any time; run `/plangenie resume` to
+  continue" (the council skill's Setup preface repeats it with the
+  GPT-reviewer caveat). Never say the user should have typed `pause` first.
+- After a `pause` or an interrupt, `resume` or `continue` in the same
+  session goes through Step 0's resume path (re-read `CHECKPOINT.md`; do not
+  trust memory). In a fresh session the user runs `/plangenie` or
+  `/plangenie resume` in the same directory.
 
 ## Step 2: Phase 4 override — automated council (replaces relay mode)
 
 **Mechanics come from the council skill; content comes from PLANGENIE.md.**
 
 Read `~/.claude/skills/council/SKILL.md` and follow its Hard rules, Setup,
-Round protocol, Pausing, Resuming, and Cancelling sections exactly. The
+Round protocol, Stopping and pausing, Resuming, and Cancelling sections exactly. The
 council skill text is authoritative for mechanics EXCEPT where the numbered
 overrides below contradict it — the overrides win. Do not paraphrase the
 mechanics here or from memory: read them. This adapter was written against
-the council skill's marker line `council-protocol: v4`; if that file shows a
+the council skill's marker line `council-protocol: v5`; if that file shows a
 different version (or no marker), stop and tell the user the adapter needs
 review before running a council.
 
@@ -196,14 +206,16 @@ PlanGenie overrides on top of the council skill's protocol:
    `[CONFIRMED] (user approved)`; every item left open is recorded in
    PLAN.md's Remaining Unknowns as `[OPEN]` — at ANY exit, an early stop
    included. Then Step 3.
-6. **Pause and resume inside the council:** `pause` at any council prompt
-   (a setup question, a final-review verdict, a fallback choice) or as a
-   plain message between rounds
-   runs the council skill's "Pausing on request" section — which handles
-   seats in flight, writes `STATUS: PAUSED (round N, <stage>)` and the
-   `RESUME:` line to `council/LOG.md`, and commits — and THEN PLANGENIE.md's
-   pause procedure writes `CHECKPOINT.md` (`Phase: 4`, `Council:` mirroring
-   the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
+6. **Pause and resume inside the council:** any interrupt (Esc, Ctrl+C,
+   session end, a crash) is a pause — the council skill's "Stopping and
+   pausing" section says what happens to seats in flight, and Step 0 or
+   `/council resume` continues from `council/LOG.md`. The typed word
+   `pause` (at a setup question, a final-review verdict, a fallback choice,
+   or as the first message after an Esc) runs that same section — which
+   records the state of any Codex job, writes `STATUS: PAUSED (round N,
+   <stage>)` and the `RESUME:` line to `council/LOG.md`, and commits — and
+   THEN PLANGENIE.md's pause procedure writes `CHECKPOINT.md` (`Phase: 4`,
+   `Council:` mirroring the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
    resume` from the same directory) reads `council/LOG.md`, the current
    round's critiques and `council/round-N-merge.md` (or `council/FINAL.md`
    during the final review) only, and continues at the recorded stage —

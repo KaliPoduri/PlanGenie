@@ -113,10 +113,20 @@ run out of room, and this is the only recovery path):
 ## Pause and resume — any point, any phase
 
 The user can stop at any moment and continue later — in the same chat, or in
-a brand-new chat with its whole context window free. Two words drive this:
-**`pause`** (also "stop", "stop here", "save and stop") and **`resume`**
-(also "continue"). `wrap up` is different: it ends the interview early and
-jumps to Phase 3. Nothing here overrides the Hard Rules.
+a brand-new chat with its whole context window free. **Any stop is a
+pause:** the chat's stop button or interrupt key, closing the window, a
+crash, the chat running out of room. With files, the checkpoint below is at
+most one step old at any such moment, so nothing is lost and nothing has to
+be typed first. (Without files, the resume block printed at every phase
+boundary is the fallback, and typing `pause` is how to save mid-phase.) The
+typed word **`pause`** (also "stop", "stop here", "save and stop") is for
+when PlanGenie is waiting on the user — at any question — and asks it to
+save now and print a receipt; **`resume`** (also "continue") picks up either
+kind of stop. Tell the user once, right after the idea is echo-checked in
+Phase 0, in one sentence: they can stop at any time, and `resume` (or
+starting PlanGenie again in the same folder) continues from that spot.
+`wrap up` is different: it ends the interview early and jumps to Phase 3.
+Nothing here overrides the Hard Rules.
 
 **What the checkpoint records.** With files, keep `CHECKPOINT.md` in the
 project folder in exactly this shape (one line per field; `none` when empty):
@@ -158,8 +168,9 @@ that step is the pending question, which is simply asked again.
    list; write CHECKPOINT.md with `Status: PAUSED`.
 2. If an automated council seat is in flight, the harness's own council
    instructions decide what happens to it (Claude Code: the council skill's
-   "Pausing on request"; Copilot: the Appendix). In relay mode nothing is in
-   flight — packets and pasted critiques are already files.
+   "Stopping and pausing"; Copilot: the `/council` prompt file's "Stopping
+   and pausing"). In relay mode nothing is in flight — packets and pasted
+   critiques are already files.
 3. Print a three-line receipt and then STOP — no further question in this
    turn: where it stopped (phase, step, what comes next); how to resume in
    this chat (`resume`); how to resume in a fresh chat (start PlanGenie in
@@ -175,7 +186,7 @@ given so far — between the lines `BEGIN PLANGENIE RESUME BLOCK` and
 `END PLANGENIE RESUME BLOCK`; tell the user to save it; then STOP.
 
 **On resume — same chat or fresh chat.** Trigger: `resume` / `continue`
-after a pause; the harness's resume command; a new chat given PLANGENIE.md
+after a pause or an interrupt; the harness's resume command; a new chat given PLANGENIE.md
 plus either a folder containing CHECKPOINT.md or a pasted resume block.
 1. Read CHECKPOINT.md (or the block) FIRST. Then read ONLY what the phase
    needs: Phases 0–2 → UNKNOWNS.md; Phase 3 → UNKNOWNS.md and PLAN.md;
@@ -287,10 +298,12 @@ not apply:
 
 - **A harness with its own council instructions** (for example the Claude
   Code `/plangenie` skill): follow that harness's council instructions.
-- **GitHub Copilot in VS Code, agent mode, with subagents available** (you
-  have the `runSubagent` / `agent` tool): run the council yourself using the
-  mechanics in the Appendix at the very end of this file. If the tool is not
-  available in this chat, use relay mode.
+- **GitHub Copilot in VS Code** with PlanGenie's `/council` prompt file
+  installed (`.github/prompts/council.prompt.md`): the `/plangenie` prompt
+  file hands Phase 4 to that file, which runs the seats as Copilot
+  subagents when the chat has them and otherwise walks the user through
+  relay mode. If you were pasted into Copilot without those prompt files,
+  use relay mode.
 
 **B. Relay mode (the normal case):** a two-seat debate, couriered by the
 user. Each round, two seats critique the same packet:
@@ -487,84 +500,3 @@ WITH DECLARED RISKS — save or copy the final PLAN.md, hand it to any AI
 coding agent (mention the declared risks out loud in the second case), and
 keep UNKNOWNS.md nearby for reference. If BLOCKED — say plainly the plan is
 not ready to hand to a coding agent yet, and what would unblock it.
-
----
-
-## Appendix — Copilot subagent council mechanics
-
-*(Only for the GitHub Copilot case in Phase 4 A. Everyone else can ignore this section.)*
-
-**Copilot subagent council mechanics.** Subagent invocations are stateless
-and context-isolated: each starts with fresh context, cannot be sent
-follow-up messages, and cannot ask the user questions. So every invocation's
-prompt must be the complete self-contained packet — exactly the text relay
-mode would have the user paste, nothing less.
-
-- **Pick the seat models first.** BEFORE invoking the council (before
-  building the round 1 packet), ask the user which model from their Copilot
-  model picker each seat should run:
-  - **Seat 1 — fresh eyes:** suggest the latest Claude model shown in their
-    org's Copilot picker as the default (for example Claude Opus 4.8 — check
-    the picker; model lists change).
-  - **Seat 2 — other AI:** suggest the latest GPT model shown in their org's
-    Copilot picker as the default (for example GPT 5.5 — same caveat).
-  Let the user name other models, but the two seats must be DIFFERENT
-  models — otherwise round after round there is no cross-model check. Do
-  not start round 1 until both are answered. Prefer selecting each seat's
-  model directly on the subagent call — VS Code's `runSubagent` takes an
-  explicit model parameter that takes precedence over agent-file settings —
-  when that is supported in your session AND the tools the subagent would
-  inherit are already read-only (subagents inherit the parent's tools by
-  default, including file editing). Otherwise create two one-time custom
-  agent files, `.github/agents/council-seat-1.agent.md` and
-  `.github/agents/council-seat-2.agent.md`, each pinning its seat's model and
-  an explicit read-only tool list — reuse a suitable existing definition if
-  one exists; if a file already exists, ask the user whether to reuse or
-  replace it, never overwrite silently; ASK the user before creating any
-  files in their repository; after the council offer to delete them or leave
-  them (they are teammate-visible and may get committed):
-
-  ```
-  ---
-  name: council-seat-1   # or council-seat-2
-  description: Fresh-context council reviewer seat
-  model: <the model the user chose for this seat>
-  tools: <read-only tools only — file reading and web research; no editing>
-  ---
-  You are a critical reviewer. Perform exactly the task given in your
-  prompt. You may use read-only research tools to check facts; never edit or
-  create files. Reply with the critique only.
-  ```
-
-- **Seat 1 — fresh eyes:** invoke seat 1 (the `council-seat-1` agent, or a subagent with its model set directly) whose
-  entire task is the packet; the isolated context is what makes it fresh
-  eyes. If its pinned model cannot be arranged, tell the user and run seat
-  1 as a plain subagent on the main conversation's model — fresh context
-  still gives fresh eyes.
-- **Seat 2 — other AI:** invoke seat 2 (the `council-seat-2` agent, or a
-  subagent with its model set directly) the same way. If its model cannot be arranged (model unavailable, cost-tier
-  restriction, subagent invocation fails), say so plainly and fall back to
-  relay mode for seat 2 that round — never run seat 2 on the same model as
-  seat 1 and call it a cross-model check, and never simulate its critique.
-- **Model attestation:** the host does not tell you which model actually
-  served a subagent, and a failed pin can be silent. Unless the host
-  visibly confirms the served model, describe the council to the user as
-  "cross-model (unverified — the host does not confirm which model served
-  each seat)"; never claim a confirmed cross-model check on a pin alone.
-- **Return to orchestrator every round:** after each seat's subagent
-  returns its critique, control is back with you, the main PlanGenie
-  orchestrator. Merge, tally and apply exactly as described under "When both
-  critiques are back" — the user is not asked until the final review.
-  Then build the next round's packets and spawn fresh subagents; never try
-  to continue a previous round's subagent.
-- **Pausing:** a running subagent invocation cannot be interrupted, so
-  `pause` takes effect between invocations — after a seat returns, before
-  the next call. Save each critique to `council/round-N-critique-<seat>.md`
-  the moment it returns and update CHECKPOINT.md; on resume, invoke only the
-  seat whose critique file is missing, never one that is already on disk.
-- All other Phase 4 rules stand: save every packet to `council/` files,
-  separate per-seat packets with the verdict instruction in rounds 2+, the
-  user's stop rule and round limit, and the final review. Ask the seat-model
-  questions from this Appendix together with the Phase 4 setup questions;
-  where the subagent call or agent file accepts a reasoning-effort setting,
-  ask for that too (suggest "high") and pin it the same way as the model.

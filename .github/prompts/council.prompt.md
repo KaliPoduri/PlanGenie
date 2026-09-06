@@ -10,11 +10,12 @@ critique ONE existing document and debate each other over several rounds.
 You merge their critiques, apply what both seats agree on, carry the rest
 into the next round, and keep going until the user's stop rule is met. **The
 user is not asked anything between the setup questions and the final
-review**, except when a seat cannot be obtained or they say `pause`. At the
+review**, except when a seat cannot be obtained. To stop, they press the
+chat's Stop button (see Stopping and pausing). At the
 end the user sees the final document plus every open item and decides those
 only. This runs on its own — it does not need PlanGenie.
 
-`council-protocol: v4` (Copilot adapter, 2026-09-06). Same protocol as the
+`council-protocol: v5` (Copilot adapter, 2026-09-07). Same protocol as the
 Claude Code council skill: same packet, verdict grammar, tally rules, STATUS
 grammar and file layout, so a council started in one tool can be resumed in
 the other.
@@ -27,7 +28,9 @@ the other.
 ## Step 0 — resume check (ALWAYS first, on every invocation)
 
 If `council/LOG.md` exists in the workspace and its LAST `STATUS:` line is
-not `CLOSED` or `ABANDONED`, this is a RESUME, not a new council:
+not `CLOSED` or `ABANDONED`, this is a RESUME, not a new council — whether
+the user ran `/council` again, or typed `resume` / `continue` in this chat
+after a pause or a Stop:
 
 1. Read only `council/LOG.md` (the setup answers live there — never re-ask
    them), the document under review (current version on disk), and the
@@ -36,7 +39,8 @@ not `CLOSED` or `ABANDONED`, this is a RESUME, not a new council:
    files — LOG.md carries their tallies. Do not rely on chat memory.
 2. Tell the user in one paragraph where the council is (round, stage, the
    `RESUME:` line if any, seats, models, stop rule, current agreement
-   percentage) and that you are continuing.
+   percentage) and that you are continuing — and, if the stop was an
+   interrupt rather than a typed `pause`, that nothing was lost.
 3. Continue at the recorded stage per the STATUS table below. Never redo a
    stage LOG.md records as done; never re-ask a logged verdict; a critique
    file that is on disk is never requested or re-run again.
@@ -49,10 +53,11 @@ document, or stop.
 
 ## Step 1 — setup questions (once per council)
 
-Say in one sentence: the seats will debate on their own, edits both seats
+Say in two sentences: the seats will debate on their own, edits both seats
 agree on are applied automatically, and the user is asked again only when
-the council is finished (or if a seat cannot be obtained). Then ask, with
-multiple-choice options, defaults first:
+the council is finished (or if a seat cannot be obtained); and they can
+press Stop at any time — running `/council` again on this file continues
+where it stopped. Then ask, with multiple-choice options, defaults first:
 
 1. **Seat 1 model (fresh eyes):** the newest Claude model in the user's
    Copilot model picker (check the picker; lists change) / another.
@@ -262,14 +267,27 @@ subagent) or hand out the next relay instructions.
 5. Set `STATUS: CLOSED`, commit by pathspec (add `council/FINAL.md`), and
    offer to delete any seat agent files you created.
 
-## Pausing on request
+## Stopping and pausing
 
-The user may say `pause` (also "stop", "stop here", "save and stop") at any
-prompt or as a plain message between rounds. `pause` is not "abandon" —
-nothing is archived or discarded.
+**Any stop is a pause.** While a round runs — subagents out, merge, next
+round — the user cannot type anything you will act on; the real stop is
+the chat's Stop button (or closing the window, a crash, the chat running
+out of room). LOG.md is written before every action, so it is at most one
+stage stale, and Step 0 treats `IN PROGRESS` exactly like `PAUSED`. A
+subagent interrupted this way returns nothing; on resume, every seat whose
+critique file is not on disk is simply run again with the round's saved
+packet. Never tell the user to "type pause to stop".
 
-1. A running subagent cannot be interrupted; the pause takes effect when it
-   returns and its critique is saved. In relay mode nothing is in flight.
+**The typed word `pause`** (also "stop", "stop here", "save and stop")
+applies when the council is waiting on the user — a setup question, a relay
+hand-off, a seat-failure question, a final-review verdict — or as the first
+message after a Stop. It is not "abandon": nothing is archived or
+discarded.
+
+1. If a subagent is still running, let it return and save its critique
+   first. If it was interrupted, log `- seat<k> lost to interrupt; re-run
+   on resume` (its packet file is kept). In relay mode nothing is in
+   flight.
 2. Write to LOG.md: `STATUS: PAUSED (round N, <stage>)` or
    `PAUSED (final review k/m)`, `PAUSED AT: <ISO timestamp>`, and
    `RESUME: <one sentence — the exact next action, e.g. "apply the agreed
@@ -282,9 +300,7 @@ nothing is archived or discarded.
    and run `/council` again with the same document — Step 0 reads only
    LOG.md and the current round's files, so a fresh chat keeps its room).
 
-An abrupt stop (closing the window, a crash, the chat running out of room)
-skips the receipt, but LOG.md is at most one stage stale and resumption is
-identical.
+An abrupt stop skips the receipt; resumption is identical.
 
 ## Hard rules
 
