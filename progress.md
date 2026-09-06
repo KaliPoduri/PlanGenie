@@ -68,3 +68,28 @@ app) in an isolated scratchpad git repo. 3 council rounds, both seats live:
   assumptions register emptied.
 Caveats: interview answers and accept/reject verdicts were simulated (user
 away) — AskUserQuestion path untested live; tests 1, 2, 4, 6 still pending.
+
+## 2026-09-06 — Council protocol v4: autonomous debate, user judges only open items
+
+User request: "minimalistic interference from the user". Changes across
+council SKILL.md (marker bumped to `council-protocol: v4`), plangenie
+SKILL.md, PLANGENIE.md Phase 4 (relay mode), the Copilot
+`.github/prompts/council.prompt.md`, and README:
+- Setup questions up front: Claude seat model, Codex seat model (passed as
+  `--model`), reasoning effort for both seats (Codex: `--effort`; Claude seat:
+  written into the `effort:` line of `~/.claude/agents/council-claude-seat*.md`,
+  which Claude Code hot-reloads — there is no per-call effort parameter),
+  stop rule (agreement ≥ 95/90/80 % or fixed rounds), round limit (user-set,
+  default 5, no hardcoded cap).
+- No per-refinement AskUserQuestion. Round 1: items both seats raised are
+  agreed; rounds 2+: AGREE → applied; AGREE WITH CHANGE → alternative fix
+  carried back for mutual agreement; REBUT → one rebuttal exchange, then
+  deadlocked (frozen). Agreement % = settled / (settled + deadlocked + carried),
+  cumulative by point ID. Council-agreed edits tagged
+  `[CANDIDATE] (council-agreed: <ids>)`, never user-approved.
+- STATUS grammar: `arbitrating`/`arbitrated` replaced by `merged`/`applied`;
+  new `FINAL REVIEW (k/m)` stage backed by `council/FINAL.md`.
+- Final review: full document + open items (deadlocks, unreconciled fixes,
+  UNVERIFIABLE claims, concerns left at the limit); user picks a side or
+  leaves open; one closing accept / more-rounds question.
+- Not yet field-tested end-to-end (v3 was, on 2026-07-06).

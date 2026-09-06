@@ -3,7 +3,7 @@
 **Task:** PlanGenie built and council-tested. Deliverables committed (2026-07-04).
 **Artifacts:** PLANGENIE.md (root), .claude/skills/plangenie/SKILL.md, README.md.
 
-**Status:** 2026-07-06: spec §7 tests 3 and 5 PASSED — full /plangenie council
+**Status:** 2026-09-06: council protocol v4 written (autonomous debate; user sets models, effort, stop rule up front and judges only open items at the end) across council SKILL.md, plangenie SKILL.md, PLANGENIE.md, Copilot council.prompt.md, README — NOT yet field-tested. Previous: 2026-07-06: spec §7 tests 3 and 5 PASSED — full /plangenie council
 stress test (3 rounds, Claude Fable seat + Codex seat, per-seat cross-exam
 packets, verdict tallies, per-round commits) ran end-to-end with a toy idea
 (family grocery app). BOTH seats independently caught BOTH planted traps

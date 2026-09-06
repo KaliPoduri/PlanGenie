@@ -18,8 +18,10 @@ unknown unknowns) before a single line of code exists.
 4. **Draft plan** — every line tagged with where it came from
    (`[USER]` / `[CONFIRMED]` / `[CANDIDATE]` / `[OPEN]`); no unverified
    tool names stated as fact.
-5. **Council review** — other AIs critique the plan and hunt for made-up
-   facts; you accept or reject each change (up to 5 rounds).
+5. **Council review** — two other AIs critique the plan, hunt for made-up
+   facts, and debate each other until they agree (you set the bar, for
+   example 95% agreement, and a round limit); you decide only what they
+   could not settle, at the end.
 6. **Final plan** — a PLAN.md any AI coding agent can implement, with
    deviation-logging instructions baked in.
 
@@ -74,12 +76,19 @@ chat apps, you are the messenger between them:
    That counts as a different AI — no second app or account needed.
 3. Copy the reviewer's whole reply and paste it back to PlanGenie.
 4. Do the same for the second reviewer seat when PlanGenie asks.
-5. PlanGenie then shows you each suggested change with plain-language pros
-   and cons. You say yes or no to each. Nothing changes without your OK.
+5. PlanGenie merges the two replies, applies what both reviewers agree on,
+   and sends the rest back to them for another round. It prints a one-line
+   round summary each time; it does not ask you anything.
 
-This repeats for up to 5 rounds; usually the reviewers run out of complaints
-sooner. (In Claude Code with the Codex plugin, this whole step runs by
-itself — you only do the yes/no part.)
+Before round 1 it asks you three quick questions: the stop rule (keep going
+until the reviewers agree on 95% of the points, or a fixed number of
+rounds), the round limit (default 5), and which AI serves each seat. When the
+rule is met, it shows you the finished plan and only the leftovers — points
+the two reviewers could not settle, each with both sides in plain words —
+and you pick a side or leave them open. One last question: accept the plan,
+or run more rounds. (In Claude Code with the Codex plugin the whole step
+runs by itself: you answer the setup questions, wait, and judge the
+leftovers.)
 
 **Step 6 — Get your plan.** PlanGenie prints the final `PLAN.md`. Save it.
 To build the project, open any AI coding tool and say "Implement this plan",
@@ -140,9 +149,10 @@ usual reason the command shows as "unknown".)
 3. Start a new Claude Code session anywhere and type `/plangenie`.
 
 The Claude Code version keeps `PLAN.md` and `UNKNOWNS.md` as real files and, if
-the OpenAI Codex plugin is installed, runs the council automatically: Claude
-reviews, GPT reviews, you judge. No Codex plugin? It offers Claude-only review
-or relay mode.
+the OpenAI Codex plugin is installed, runs the council automatically: you pick
+the two models, their reasoning effort, the stop rule and the round limit up
+front; Claude and GPT then debate on their own, and you judge only the open
+items at the end. No Codex plugin? It offers Claude-only review or relay mode.
 
 ### Cursor
 
@@ -179,8 +189,9 @@ This repo also ships two more Copilot commands in `.github/prompts/`
   a round count (default 3, max 5). It asks which two models to use, runs the
   rounds (automatically when Copilot subagents are available, otherwise it
   tells you which packet to carry to a second chat with `/council-review`),
-  lets you accept or reject each refinement, and keeps `council/LOG.md` so
-  `pause` and a later `/council` on the same file resume where it stopped.
+  applies what both seats agree on, asks you only about the open items at
+  the end, and keeps `council/LOG.md` so `pause` and a later `/council` on
+  the same file resume where it stopped.
 
 Neither is field-tested yet — if a command does not appear, check that
 "Chat: Prompt Files" is enabled in VS Code settings; pasting the packet works

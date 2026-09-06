@@ -55,11 +55,12 @@ these Claude Code specifics:
 - Keep `CHECKPOINT.md` as a real file too, rewritten at EVERY state change
   exactly as PLANGENIE.md's "Pause and resume" section defines (question
   asked, answer recorded, echo-check issued or answered, phase or step
-  change, council stage change, refinement verdict). It is small; the cost is
+  change, council stage change, final-review verdict). It is small; the cost is
   one short write per step, and it is what lets a stop at any moment resume
   from that exact step.
-- Use the AskUserQuestion tool for multiple-choice interview questions and for
-  accept/reject verdicts on council refinements. The user may answer any of
+- Use the AskUserQuestion tool for multiple-choice interview questions, for
+  the council's setup questions, and for the final-review verdicts on open
+  items (there are no per-refinement verdicts). The user may answer any of
   them with `pause` (via "Other") or send `pause` as a plain message; follow
   PLANGENIE.md's pause procedure and STOP — no further question in that turn.
   In Phase 4 with the automated council, the council skill's "Pausing on
@@ -79,7 +80,7 @@ Round protocol, Pausing, Resuming, and Cancelling sections exactly. The
 council skill text is authoritative for mechanics EXCEPT where the numbered
 overrides below contradict it — the overrides win. Do not paraphrase the
 mechanics here or from memory: read them. This adapter was written against
-the council skill's marker line `council-protocol: v3`; if that file shows a
+the council skill's marker line `council-protocol: v4`; if that file shows a
 different version (or no marker), stop and tell the user the adapter needs
 review before running a council.
 
@@ -112,11 +113,14 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
    and `council-claude-seat-2` agent files exist in `~/.claude/agents/`, and
    check whether the project root is a git repository. (No live Codex auth probe — the first dispatch is the auth
    test, and override 3 handles that failure.)
-3. **Cost warning + consent:** tell the user to allow minutes to tens of
-   minutes per Codex round (durations recorded in earlier LOG.md files are the
-   best local estimate) and that a full council can exceed an hour; confirm
-   they want the automated council BEFORE anything is created, moved, or
-   written.
+3. **Setup questions = consent:** run the council skill's Setup questions
+   (Claude seat model, Codex seat model, effort, stop rule, round limit) —
+   its one-sentence preface carries the time warning (minutes to tens of
+   minutes per Codex round; durations recorded in earlier LOG.md files are
+   the best local estimate; a full council can exceed an hour) and says the
+   seats will debate on their own. Answering them is the consent; nothing is
+   created, moved, or written before the answers are in. Then pin the Claude
+   seat agent files exactly as the council skill's Setup step 2 says.
 4. **Only then create/move artifacts:** perform the actions classified in
    step 1 — for an abandoned run, cancel its outstanding jobs and write its
    `STATUS: ABANDONED` line first; create `council/` if missing; if it holds
@@ -134,7 +138,9 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
 
 PlanGenie overrides on top of the council skill's protocol:
 
-1. **Rounds: 5 maximum** (not the council skill's default 3).
+1. **Rounds:** the round limit and the stop rule are whatever the user chose
+   in the council skill's Setup questions (limit default 5; stop rule default
+   agreement ≥ 95%). PlanGenie sets no separate cap.
 2. **Packet content** is exactly as PLANGENIE.md Phase 4 defines it:
    self-contained, the FULL current tagged plan embedded (never a summary or
    diff), the five critique criteria including the fabrication-hunt, and —
@@ -151,49 +157,59 @@ PlanGenie overrides on top of the council skill's protocol:
    council, or switch to PLANGENIE.md relay mode. Say plainly that
    Claude-only loses the cross-model check. Claude-only means BOTH seats are
    fresh Claude subagents with no shared context: seat 1 via
-   `council-claude-seat` (pins fable, effort high, read-only tools), seat 2
-   via `council-claude-seat-2` (pins a DIFFERENT Claude model — opus — effort
-   high, the same read-only tools), each with the explicit `model:` on the
+   `council-claude-seat` (pinned at Setup to the chosen model and effort,
+   read-only tools), seat 2 via `council-claude-seat-2` (pins a DIFFERENT
+   Claude model, the same effort and read-only tools), each with the explicit `model:` on the
    Agent call. Only if an agent file is missing fall back to `general-purpose`
    with an explicit different `model`, and say plainly that this seat runs at
    session effort and WITHOUT an enforced read-only tool boundary. If only one
    Claude model is available, say plainly the council is single-model. Record
    each seat's actual verification capabilities (its tools) in LOG.md rather
    than a blanket label. The round protocol is otherwise unchanged.
-4. **Merge and arbitrate per PLANGENIE.md Phase 4:** tally verdicts (AGREE
-   WITH CHANGE settles the concern, not the remedy — the point stays disputed
-   until the other seat accepts the alternative fix); route every claim a
-   seat marked UNVERIFIABLE to the seat that can check it in the next packet,
-   or record it in UNKNOWNS.md as an unresolved verification obligation; if a
+4. **Merge, tally and apply per the council skill's step 4 — the seats
+   decide, not the user.** No per-refinement AskUserQuestion. An edit the
+   seats agreed on is applied to PLAN.md at once and tagged `[CANDIDATE]
+   (council-agreed: <point ids>)` — or `[CONFIRMED] (verified: <source>,
+   <date>)` only when a seat actually verified the claim with a tool and
+   named the source in its critique — never `[CONFIRMED] (user approved)`
+   (Hard Rule 1: the user did not approve it). Route every claim a seat
+   marked UNVERIFIABLE to the seat that can check it in the next packet, or
+   record it in UNKNOWNS.md as an unresolved verification obligation. If a
    seat left a point unanswered, re-send that seat's packet AT MOST ONCE per
-   round — if the verdict is still missing, record those points as disputed
-   and the seat as failed for the round; do not loop. Present each refinement
-   via AskUserQuestion with plain-language pros and cons, and never apply a
-   refinement the user has not accepted. Apply accepted changes to PLAN.md
-   and keep UNKNOWNS.md in sync. Round commits (and pause commits) are made
+   round; if the verdict is still missing, the point is deadlocked and the
+   seat failed for the round; do not loop. Keep UNKNOWNS.md in sync after
+   every apply (agreed items leave the register, deadlocked items are noted
+   as open). Round commits (and pause commits) are made
    BY explicit pathspec — `git commit -m "..." -- PLAN.md UNKNOWNS.md
    CHECKPOINT.md council/LOG.md council/round-N-*.md next_session.md
    <archived paths whose deletion this run staged>` — never
    `council/archive-*/`, so the user's unrelated staged work is left
    untouched; review the set with `git status --short -- <the same paths>`
    first.
-5. **Exit check:** stop when (a) neither reviewer has major concerns AND the
-   user is satisfied — ask at each round checkpoint (AskUserQuestion:
-   another round, or done) rather than inferring satisfaction from refinement
-   verdicts — or (b) 5 rounds are done. Concerns still standing at ANY exit —
-   an early "done" included, not only the cap — are recorded in PLAN.md's
-   Remaining Unknowns as `[OPEN]`.
+5. **Exit and final review:** the council skill's stop rule (its step 5)
+   decides when the rounds end — there is no another-round question at
+   round checkpoints, only the one-paragraph round summary. Then run the
+   council skill's Final review: write `council/FINAL.md`, show the full
+   current PLAN.md, ask the open items only (each with the seats' positions
+   as options plus "leave open"), and the one closing question (accept, or
+   run more rounds). A resolution the user picks is applied and tagged
+   `[CONFIRMED] (user approved)`; every item left open is recorded in
+   PLAN.md's Remaining Unknowns as `[OPEN]` — at ANY exit, an early stop
+   included. Then Step 3.
 6. **Pause and resume inside the council:** `pause` at any council prompt
-   (a refinement verdict, the another-round question, a fallback choice)
+   (a setup question, a final-review verdict, a fallback choice) or as a
+   plain message between rounds
    runs the council skill's "Pausing on request" section — which handles
    seats in flight, writes `STATUS: PAUSED (round N, <stage>)` and the
    `RESUME:` line to `council/LOG.md`, and commits — and THEN PLANGENIE.md's
    pause procedure writes `CHECKPOINT.md` (`Phase: 4`, `Council:` mirroring
    the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
    resume` from the same directory) reads `council/LOG.md`, the current
-   round's critiques and `council/round-N-merge.md` only, and continues at
-   the recorded stage — verdicts already logged are never re-asked, and a
-   round whose Codex job was lost is re-dispatched with its saved packet.
+   round's critiques and `council/round-N-merge.md` (or `council/FINAL.md`
+   during the final review) only, and continues at the recorded stage —
+   setup answers and final-review verdicts already logged are never
+   re-asked, and a round whose Codex job was lost is re-dispatched with its
+   saved packet.
 
 ## Step 3: Finish
 
