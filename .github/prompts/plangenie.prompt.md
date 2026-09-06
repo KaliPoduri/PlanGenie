@@ -13,20 +13,25 @@ Copilot Chat. Do not paraphrase either file from memory: read them.
 ## Step 0 — resume check (ALWAYS first, on every invocation)
 
 `/plangenie` may be starting a new plan OR continuing one. The file
-`CHECKPOINT.md` in the workspace root decides which. Check for it before
-reading anything else, so a fresh chat spends its room on the plan.
+`planning/CHECKPOINT.md` under the workspace root decides which
+(PLANGENIE.md's "State you maintain" defines the `planning/` layout; every
+bare file name below lives there). Check for it before reading anything
+else, so a fresh chat spends its room on the plan. A `CHECKPOINT.md` or
+`council/` at the workspace root instead belongs to a run from before the
+`planning/` layout: say so and offer to move them into `planning/` and
+`planning/packets/` before resuming — never move them silently.
 
 - **`CHECKPOINT.md` exists with `Status: IN PROGRESS` or `PAUSED`:** read it
   (it is short), say in one line where the run stopped (its `Phase`, `Step`
   and `Next` lines), and ask, multiple choice: **Resume from there
-  (recommended)** / **Start over** (the old run's `PLAN.md`, `UNKNOWNS.md`,
-  `CHECKPOINT.md` and `council/` are moved to `plangenie-archive-<date-time>/`
-  first — nothing is deleted) / **Something else**. If the user's message
+  (recommended)** / **Start over** (the old run's files in `planning/` are
+  moved to `planning/archive-<date-time>/` first — nothing is deleted) /
+  **Something else**. If the user's message
   already says `resume`, skip the question. On resume: load `PLANGENIE.md`
   (Step 1), then follow its "Pause and resume" section exactly — it lists
   the only files to read per phase; never rebuild state from chat history.
   If the checkpoint says Phase 4, the council's own stage comes from
-  `council/LOG.md` via the `/council` prompt's Step 0 — `CHECKPOINT.md` only
+  `planning/packets/LOG.md` via the `/council` prompt's Step 0 — `CHECKPOINT.md` only
   mirrors it.
 - **`Status: FINISHED`:** say the plan was finished on the recorded date and
   ask: revise this plan (re-enter Phase 4 or edit) / start a new plan (in a
@@ -45,17 +50,23 @@ Find `PLANGENIE.md`, in this order: `.github/prompts/PLANGENIE.md`; the
 workspace root; a file the user attached. If it is in none of these, ask
 where it is. Do NOT reconstruct it from memory.
 
-Before the first write, state the absolute folder you are about to write
-into. If `PLAN.md`, `UNKNOWNS.md` or `CHECKPOINT.md` already exist there and
-this chat did not create them (and Step 0 did not already resolve them), ask
+Before the first write, state the absolute path of the `planning/` folder
+you are about to write into (created under the workspace root if missing).
+If `PLAN.md`, `UNKNOWNS.md` or `CHECKPOINT.md` already exist there and this
+chat did not create them (and Step 0 did not already resolve them), ask
 before overwriting.
 
 Follow PLANGENIE.md exactly — all Hard Rules, Phases 0–3 and 5 unchanged —
 with these Copilot specifics:
 
-- Keep `PLAN.md`, `UNKNOWNS.md` and `CHECKPOINT.md` as real files in the
-  workspace root, at the cadence PLANGENIE.md defines (`CHECKPOINT.md` at
+- Keep `PLAN.md`, `UNKNOWNS.md` and `CHECKPOINT.md` as real files directly
+  in `planning/`, at the cadence PLANGENIE.md defines (`CHECKPOINT.md` at
   EVERY state change — it is what lets a stop at any moment resume).
+- Keep `planning/status/next_session.md` and `planning/status/progress.md`
+  as PLANGENIE.md's layout defines them (the hand-off paragraph, and one
+  appended line per milestone). The `/council` prompt writes both each
+  round; outside the council, write them at every phase boundary and on
+  pause.
 - Ask multiple-choice questions as numbered options in the chat, one
   question per message, exactly as PLANGENIE.md's Hard Rule 4 says.
 - Tell the user once, when the interview starts, in one sentence: they can
@@ -80,7 +91,7 @@ improvise council mechanics.
 
 **Preflight, in this order:**
 
-1. **Resume check (classify only):** if `council/LOG.md` exists and its last
+1. **Resume check (classify only):** if `planning/packets/LOG.md` exists and its last
    `STATUS:` line is not `CLOSED` or `ABANDONED`, this is an interrupted or
    paused council — follow the `/council` prompt's Step 0. A finished round
    is NOT a finished council. Archive nothing yet.
@@ -92,9 +103,9 @@ improvise council mechanics.
    Step 1 says (subagents available and models pinnable → automated;
    otherwise relay, where the user carries each packet file to a second
    chat with `/council-review`). Ask before creating any seat agent files.
-4. **Only then:** create `council/`; if it holds a previous COMPLETED run
+4. **Only then:** create `planning/packets/`; if it holds a previous COMPLETED run
    (LOG.md `STATUS: CLOSED` or `ABANDONED`), move that run's files to
-   `council/archive-<date-time>/` first.
+   `planning/packets/archive-<date-time>/` first.
 
 **PlanGenie overrides on top of the `/council` protocol:**
 
@@ -105,7 +116,7 @@ improvise council mechanics.
    diff), the five critique criteria including the fabrication hunt, and —
    rounds 2+ — per-seat packets carrying the other seat's unresolved points
    with the AGREE / AGREE WITH CHANGE / REBUT instruction. Packets are always
-   written to `council/` files; in relay mode the user attaches the file in
+   written to `planning/packets/` files; in relay mode the user attaches the file in
    the reviewer chat rather than pasting.
 3. **A seat that cannot be obtained** follows the `/council` prompt's rule:
    retry once with the same packet, then ask — single-seat this round (say
@@ -119,11 +130,11 @@ improvise council mechanics.
    check it next round, or record it in UNKNOWNS.md as an open verification
    item. Keep UNKNOWNS.md in sync after every apply. If the workspace is a
    git repository, commit each round by explicit pathspec only:
-   `git commit -m "council: round N" -- PLAN.md UNKNOWNS.md CHECKPOINT.md council/LOG.md council/round-N-*.md`.
+   `git commit -m "council: round N" -- planning/PLAN.md planning/UNKNOWNS.md planning/CHECKPOINT.md planning/packets/LOG.md planning/packets/round-N-*.md planning/status/next_session.md planning/status/progress.md`.
 5. **CHECKPOINT.md mirrors LOG.md:** at every council stage change, rewrite
    `CHECKPOINT.md` with `Phase: 4` and a `Council:` line equal to LOG.md's
    current `STATUS:`. For the council's stage, LOG.md wins.
-6. **Final review** per the `/council` prompt's Step 4: `council/FINAL.md`
+6. **Final review** per the `/council` prompt's Step 4: `planning/packets/FINAL.md`
    first, the full PLAN.md shown, only the open items asked, then the one
    closing question. A resolution the user picks is applied and tagged
    `[CONFIRMED] (user approved)`; every item left open goes into PLAN.md's
@@ -141,9 +152,9 @@ resume.
 ## Hard rules
 
 - The only files you create or edit are `PLAN.md`, `UNKNOWNS.md`,
-  `CHECKPOINT.md`, files under `council/`, and — with permission — the seat
+  `CHECKPOINT.md`, files under `planning/packets/`, and — with permission — the seat
   agent files the `/council` prompt describes.
 - Never simulate a reviewer seat and never present a council-agreed edit as
   user-approved.
-- Never rebuild state from chat history: `CHECKPOINT.md` and `council/LOG.md`
+- Never rebuild state from chat history: `CHECKPOINT.md` and `planning/packets/LOG.md`
   are the state, even in the same chat.

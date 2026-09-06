@@ -69,7 +69,7 @@ AI "reviewers" now criticize the plan and hunt for made-up facts. In most
 chat apps, you are the messenger between them:
 
 1. PlanGenie prints a "Council Review Packet" (and saves it as a file like
-   `council/round-1-packet.md` when it can).
+   `planning/packets/round-1-packet.md` when it can).
 2. Open a NEW chat and paste the packet in — or attach the packet file.
    *Shortcut:* if your app has a model picker (GitHub Copilot, Cursor, and
    similar), open a new chat and pick a different model from the dropdown.
@@ -90,7 +90,9 @@ or run more rounds. (In Claude Code with the Codex plugin the whole step
 runs by itself: you answer the setup questions, wait, and judge the
 leftovers.)
 
-**Step 6 — Get your plan.** PlanGenie prints the final `PLAN.md`. Save it.
+**Step 6 — Get your plan.** PlanGenie prints the final `PLAN.md` (with a
+coding tool it is saved as `planning/PLAN.md` in the folder you started
+from). Save it.
 To build the project, open any AI coding tool and say "Implement this plan",
 giving it the file. The plan already contains instructions telling that AI
 what to verify and what to ask you about instead of guessing. Keep
@@ -115,8 +117,9 @@ reviewers are debating, anywhere — and continue later from that exact spot.
   has nearly all its room free. It will not repeat questions you already
   answered.
 
-Where the place is kept: with a coding tool, in a small `CHECKPOINT.md` next
-to `PLAN.md` (plus `council/LOG.md` during the review). In a plain web chat
+Where the place is kept: with a coding tool, in a small
+`planning/CHECKPOINT.md` next to `planning/PLAN.md` (plus
+`planning/packets/LOG.md` during the review). In a plain web chat
 that cannot save files, PlanGenie instead prints a RESUME BLOCK at every
 phase boundary and whenever you type "pause" — copy it somewhere safe and
 paste it, together with `PLANGENIE.md`, into the new chat. Closing such a
@@ -157,7 +160,8 @@ usual reason the command shows as "unknown".)
    first, because other projects won't have the file in their root).
 3. Start a new Claude Code session anywhere and type `/plangenie`.
 
-The Claude Code version keeps `PLAN.md` and `UNKNOWNS.md` as real files and, if
+The Claude Code version keeps `PLAN.md` and `UNKNOWNS.md` as real files in a
+`planning/` folder under the directory you started from and, if
 the OpenAI Codex plugin is installed, runs the council automatically: you pick
 the two models, their reasoning effort, the stop rule and the round limit up
 front; Claude and GPT then debate on their own, and you judge only the open
@@ -201,7 +205,7 @@ The three commands:
   limit; runs the rounds as Copilot subagents when your Copilot has them,
   and otherwise tells you which packet file to carry to a second chat;
   applies what both seats agree on; asks you only about the open items at
-  the end; and keeps `council/LOG.md` so a stop and a later `/council` on
+  the end; and keeps `planning/packets/LOG.md` so a stop and a later `/council` on
   the same file resume where it stopped.
 - `/council-review` — the reviewer seat for that second chat: pick a
   DIFFERENT model from the model picker, type `/council-review`, and attach
@@ -255,6 +259,9 @@ Code version, send the `.claude/skills/plangenie/` folder along with
 | `.github/prompts/plangenie.prompt.md` | Copilot adapter (`/plangenie`) — hands the review step to `/council` |
 | `.github/prompts/council.prompt.md` | Copilot `/council` — the council on any document, also used by `/plangenie` |
 | `.github/prompts/council-review.prompt.md` | Copilot reviewer-seat prompt for a second chat |
-| `PLAN.md`, `UNKNOWNS.md` | Created per project while PlanGenie runs |
-| `CHECKPOINT.md` | Where PlanGenie is right now — lets any stop continue from the exact step |
-| `council/LOG.md` | The council's own progress record during the review step |
+| `planning/` | Created in the folder you run PlanGenie from; everything it writes goes here |
+| `planning/PLAN.md`, `planning/UNKNOWNS.md` | The plan and the register of knowns and unknowns |
+| `planning/CHECKPOINT.md` | Where PlanGenie is right now — lets any stop continue from the exact step |
+| `planning/packets/` | Everything the council writes: packets, critiques, merge files, `LOG.md` (its progress record), `FINAL.md` |
+| `planning/status/next_session.md` | One paragraph: where the run is and what happens next |
+| `planning/status/progress.md` | One line per milestone (phase entered, round applied, pause, resume, finished) |
