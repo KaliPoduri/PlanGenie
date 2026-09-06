@@ -1,0 +1,5 @@
+# Claude Code background-job worktrees
+.claude/worktrees/
+
+# Scratch record of the last /gpt Codex launch
+.gpt-last-job.json
