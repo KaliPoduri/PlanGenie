@@ -90,3 +90,131 @@ The main product gaps are:
 I would prioritize **dependency packaging, reliable recovery, agreement on exact fixes, and complete issue preservation**, followed by a stronger final-plan template and repeatable evaluations.
 
 Verification this session confirmed six core phases, matching v5 protocol markers across four files, and valid JSON metadata. `git diff --exit-code` returned **0**, and final status showed the same two pre-existing untracked files. **No end-to-end product run was performed, and no fixes were applied.**
+
+---
+
+# REVIEW ITERATION 2
+
+Second independent read-only review by Codex (GPT, via the Codex plugin),
+run on 2026-09-07 against commit `1d2ee40` on `main` (council protocol v6,
+after the fixes for the review above were merged). Same task as before:
+read `README.md`, parse every file in the repo, check that the codebase
+matches what the README says, and give an independent review of the idea
+and the tool for loopholes, bugs and misses. The text below is Codex's
+answer, unedited apart from making its file links repo-relative.
+
+---
+
+**The README broadly matches the intended workflow, but its guarantees exceed what the current prompts reliably specify.** The main gaps are interruption recovery, preservation of review history, and council accounting.
+
+I reviewed all **16 working-tree files**, including hidden adapters, reviewer definitions, local metadata, and the previous review, plus the active Git hook. Git's internal object database was excluded. **No files were created or edited.**
+
+This is a prompt-based product: the implementation consists of Markdown instructions, with no application runtime or automated test suite. The findings below concern those instructions; live execution across the supported tools remains **not yet verified**.
+
+| README claim | Assessment |
+|---|---|
+| Intake, blindspots, adaptive interview, "wrap up" | Consistently specified |
+| Provenance tags and explicit unknowns | Specified, including answer references and a self-audit |
+| Two-reviewer council with configurable stopping | Present, with accounting contradictions |
+| Stop anywhere and resume exactly | Recovery gaps remain |
+| Every reviewer point receives a final disposition | Intended, but state preservation is incomplete |
+| Ordered implementation steps, dependencies, acceptance criteria | Required by the current prompt |
+| Portable operation across AI tools | Adapters exist; universal behavior is not demonstrated |
+
+The current revision addresses several issues in [the previous review](codex_review.md): installation dependencies are documented, reviewer files ship, round-one agreement requires compatible fixes, and the final-plan requirements are stronger.
+
+The remaining findings, in priority order:
+
+1. **High — resuming between rounds can lose access to frozen concerns.**
+
+   Recovery permits the **current round's** merge file, but that file does not exist until the current reviews have been collected and merged. The latest cumulative ledger therefore remains in the previous round.
+
+   For example, round 3 deadlocks a security concern; round 4 starts; the session closes before its merge. Recovery cannot load the previous merge under the prescribed read restrictions. Because deadlocked concerns are excluded from subsequent debate packets, their full arguments may be unavailable.
+
+   **Recommendation:** Record the latest completed ledger's path independently of the active round, and always load it on resume.
+
+   Evidence: [portable recovery](PLANGENIE.md:250), [Claude recovery](.claude/skills/council/SKILL.md:156), [Copilot recovery](.github/prompts/council.prompt.md:36).
+
+2. **Medium — interview recovery can preserve a fact while losing its provenance record.**
+
+   `UNKNOWNS.md` writes are batched. Its answer log must contain the original question, options, and answer. However, the checkpoint preserves only the current pending question and tagged "unflushed facts."
+
+   If Q8 is answered and Q9 becomes pending before a batch write, an interruption can leave Q8's fact recoverable but its question and options missing. The required `(Q8)` audit trail cannot then be reconstructed without consulting the prohibited chat history.
+
+   **Recommendation:** Checkpoint complete unflushed answer-log entries, including question IDs, options, answers, and confirmation status.
+
+   Evidence: [write cadence](PLANGENIE.md:118), [answer-log requirements](PLANGENIE.md:151), [checkpoint fields](PLANGENIE.md:191).
+
+3. **Medium — verified council edits lack the marker used to prevent duplicate application.**
+
+   Resume identifies completed edits through their council point IDs. But the verified-edit alternative permits `[CONFIRMED] (verified: <source>, <date>)` without those IDs.
+
+   An interruption during a partially completed apply therefore leaves some valid edits without the marker the recovery procedure expects. Whole-document hashes help when the entire apply completed and its hash was recorded; they do not resolve this partial-application case.
+
+   **Recommendation:** Preserve council point IDs on verified edits as well.
+
+   Evidence: [marker-based recovery](PLANGENIE.md:268), [verified-edit format](PLANGENIE.md:535), [Claude adapter equivalent](.claude/skills/plangenie/SKILL.md:217).
+
+4. **Medium — the agreement formula contradicts two council rules.**
+
+   Read-only arithmetic checks produced these counterexamples:
+
+   | Scenario | Prescribed calculation |
+   |---|---|
+   | 99 settled points, one unexamined single-seat point | **99%**, satisfying a 95% stopping threshold |
+   | Nine settled points, one separate open-verification point | **100%**, because open verification is omitted |
+
+   The first contradicts the promise that unexamined single-seat points prevent percentage-based stopping. The second overstates debate completion. Open verification still reaches final review, so this is an accounting and stopping defect, rather than necessarily lost final content.
+
+   **Recommendation:** Explicitly include verification obligations in unresolved counts and add the single-seat condition to the stopping predicate.
+
+   Evidence: [single-seat policy](PLANGENIE.md:419), [formula and ledger states](PLANGENIE.md:521), [stopping predicate](PLANGENIE.md:543). Both automated councils repeat these rules.
+
+5. **Medium — Copilot lacks a recovery branch between council closure and final-plan completion.**
+
+   The adapter mirrors every council status into a Phase 4 checkpoint, including `CLOSED`. Phase 5 marks the overall run finished later.
+
+   If interrupted between those actions, recovery returns to Phase 4. Its preflight treats only non-closed councils as resumable and proceeds toward new setup and archival. There is no explicit branch that recognizes "council completed; finalization pending."
+
+   **Recommendation:** Route `Phase: 4` plus council `CLOSED` directly to Phase 5.
+
+   Evidence: [checkpoint mirroring](.github/prompts/plangenie.prompt.md:146), [preflight](.github/prompts/plangenie.prompt.md:95), [finalization](.github/prompts/plangenie.prompt.md:159).
+
+6. **Medium — fresh reviewers cannot reliably avoid repeating previously settled objections.**
+
+   Reviewers receive fresh context and packets containing the document and carried points. They are told not to repeat settled points, but receive no required history of withdrawn or frozen objections.
+
+   A withdrawn objection may leave the document unchanged, so a fresh reviewer can raise it again as a new concern. This can reopen disputes and distort the cumulative count.
+
+   **Recommendation:** Include a compact previous-issues ledger in packets and explicitly match new concerns against existing IDs.
+
+   Evidence: [Claude packet contract](.claude/skills/council/SKILL.md:68), [Copilot packets](.github/prompts/council.prompt.md:189).
+
+7. **Medium — final-disposition bookkeeping needs an explicit update step.**
+
+   `FINAL.md` is written before the user answers. Subsequent steps explicitly update verdicts in the log and apply changes to the plan, but do not explicitly refresh `FINAL.md`'s disposition ledger.
+
+   Its stated invariant implies that updating is intended, so I classify this as a **specification ambiguity**, not a demonstrated runtime failure. A literal execution can leave accepted or rejected items listed as open.
+
+   **Recommendation:** Update each affected ID's disposition and resolution record before advancing the final-review status.
+
+   Evidence: [Claude final review](.claude/skills/council/SKILL.md:123), [Copilot final review](.github/prompts/council.prompt.md:336).
+
+Two smaller README discrepancies remain: the walkthrough says **three setup questions**, whereas the automated adapters ask five; and "everything it writes" being under `planning/` excludes reviewer-agent files created or modified elsewhere. [Setup wording](README.md:86), [output-location wording](README.md:307).
+
+My independent assessment is that **the interview, answer traceability, and explicit unknowns are the strongest parts of the idea**. They give users something concrete to inspect before implementation.
+
+The council's added value is still unproven. The README correctly distinguishes agreement from correctness, but two reviewers can accept the same unsupported premise. A useful evaluation would compare PlanGenie against a simpler interview plus one independent review, measuring:
+
+- Missed or altered user requirements.
+- Unsupported factual claims.
+- Clarifications needed during implementation.
+- User effort, elapsed time, and review cost.
+
+"Zero silent assumptions" should be presented as a design objective. The final handoff itself permits conservative improvisation with logging, and readiness can still include unresolved details. Those are reasonable choices, but the promise needs to reflect them.
+
+The immediate priority is **complete recoverable state**, followed by consistent council accounting and interruption tests. The tracking files explicitly say the latest protocol is not field-tested; historical runs do not establish current-version reliability. [Recorded status](next_session.md).
+
+Verification this session confirmed valid JSON metadata, six core phases, and matching v6 compatibility markers across all four adapters/councils. Current Claude documentation supports the agent-file hot-reloading and effort-setting approach. [Official Claude documentation](https://code.claude.com/docs/en/sub-agents).
+
+`git diff --exit-code` returned **0**. Final Git status showed the same pre-existing untracked `.claude/settings.local.json`. No live planning workflow or fixes were executed.

@@ -33,7 +33,11 @@ else, so a fresh chat spends its room on the plan. A `CHECKPOINT.md` or
   the only files to read per phase; never rebuild state from chat history.
   If the checkpoint says Phase 4, the council's own stage comes from
   `planning/council_state/LOG.md` via the `/council` prompt's Step 0 — `CHECKPOINT.md` only
-  mirrors it.
+  mirrors it. **`Phase: 4` with LOG.md's last `STATUS:` `CLOSED`** (the
+  checkpoint's `Council:` line says `CLOSED`) means the council finished
+  but Phase 5 never ran — the Stop came between the council's close and
+  the final plan: go straight to Step 3 (Phase 5). Never treat it as a
+  completed council to archive or as a new council to set up.
 - **`Status: FINISHED`:** say the plan was finished on the recorded date and
   ask: revise this plan (re-enter Phase 4 or edit) / start a new plan (in a
   different folder, or archive as above) / nothing.
@@ -85,7 +89,7 @@ with these Copilot specifics:
 **Mechanics come from the `/council` prompt; content comes from
 PLANGENIE.md.** Read `.github/prompts/council.prompt.md` and follow its
 Steps 0–4 and its "Stopping and pausing" section exactly. This adapter was
-written against that file's marker `council-protocol: v6`; if it shows a
+written against that file's marker `council-protocol: v7`; if it shows a
 different version (or none), stop and say the adapter needs review. If the
 file is missing, say so and run PLANGENIE.md's relay mode instead — do not
 improvise council mechanics.
@@ -95,7 +99,11 @@ improvise council mechanics.
 1. **Resume check (classify only):** if `planning/council_state/LOG.md` exists and its last
    `STATUS:` line is not `CLOSED` or `ABANDONED`, this is an interrupted or
    paused council — follow the `/council` prompt's Step 0. A finished round
-   is NOT a finished council. Archive nothing yet.
+   is NOT a finished council. If its last `STATUS:` is `CLOSED` while
+   `CHECKPOINT.md` still says `Phase: 4` (not `FINISHED`), the council
+   closed without Phase 5: skip this preflight and the council entirely
+   and go to Step 3 — it is neither a run to archive nor a new council to
+   set up. Archive nothing yet.
 2. **Setup questions = consent:** ask the `/council` prompt's five setup
    questions (seat 1 model, seat 2 model, effort, stop rule, round limit)
    with its preface. PlanGenie asks no separate stop-rule or seat questions.
@@ -130,11 +138,15 @@ improvise council mechanics.
 4. **Merge, tally and apply per the `/council` prompt — the seats decide,
    not the user.** No per-refinement questions. An edit both seats agreed on
    goes into PLAN.md at once, tagged `[CANDIDATE] (council-agreed: <ids>)` —
-   or `[CONFIRMED] (verified: <source>, <date>)` only when a seat actually
-   verified the claim with a tool and named the source — never `[CONFIRMED]
-   (user approved)`. Route every UNVERIFIABLE claim to the seat that can
-   check it next round, or record it in UNKNOWNS.md as an open verification
-   item. Keep UNKNOWNS.md in sync after every apply. Round 1 applies only
+   or `[CONFIRMED] (verified: <source>, <date>; council-agreed: <ids>)`
+   only when a seat actually verified the claim with a tool and named the
+   source — never `[CONFIRMED] (user approved)`. Both forms carry the point
+   IDs: they are the marker reconciliation looks for after an interrupted
+   apply. Every UNVERIFIABLE claim gets its own point ID (open
+   verification, counted as unresolved in the percentage); route it to the
+   seat that can check it next round, or record it in UNKNOWNS.md as an
+   open verification item. Keep UNKNOWNS.md in sync after every apply.
+   Round 1 applies only
    what both seats fixed the same way (a shared concern with different fixes
    is carried), and on a resume every apply is reconciled first, per the
    `/council` prompt. If the workspace is a git repository, stage and commit
@@ -144,12 +156,15 @@ improvise council mechanics.
    (the `git add` is what makes the round's new packet and critique files
    known to git).
 5. **CHECKPOINT.md mirrors LOG.md:** at every council stage change, rewrite
-   `CHECKPOINT.md` with `Phase: 4` and a `Council:` line equal to LOG.md's
-   current `STATUS:`. For the council's stage, LOG.md wins.
+   `CHECKPOINT.md` with `Phase: 4`, a `Council:` line equal to LOG.md's
+   current `STATUS:`, and a `Ledger:` line equal to its `LEDGER:` (the
+   newest merge file — what a resume loads, whatever round is running).
+   For the council's stage, LOG.md wins.
 6. **Final review** per the `/council` prompt's Step 4: `planning/packets/FINAL.md`
    first, the full PLAN.md shown, only the open items asked (every point
    still carried at the stop is one of them, minor ones included; FINAL.md's
-   ledger lists every point ID with its final state), then the one
+   ledger lists every point ID with its final state, updated at every
+   verdict and rewritten before `FINAL REVIEW (resolved)`), then the one
    closing question. A resolution the user picks is applied and tagged
    `[CONFIRMED] (user approved, final review item k)`; every item left open
    goes into PLAN.md's Remaining Unknowns as `[OPEN]` — at ANY exit, an

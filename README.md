@@ -83,9 +83,11 @@ chat apps, you are the messenger between them:
    and sends the rest back to them for another round. It prints a one-line
    round summary each time; it does not ask you anything.
 
-Before round 1 it asks you three quick questions: the stop rule (keep going
-until the reviewers agree on 95% of the points, or a fixed number of
-rounds), the round limit (default 5), and which AI serves each seat. When the
+Before round 1 it asks you a few quick setup questions: the stop rule (keep
+going until the reviewers agree on 95% of the points, or a fixed number of
+rounds), the round limit (default 5), and which AI serves each seat — in
+Claude Code and Copilot that last one becomes three: which model for each
+of the two seats, and their reasoning effort, five questions in all. When the
 rule is met, it shows you the finished plan and only the leftovers — points
 the two reviewers could not settle, each with both sides in plain words,
 plus anything still undecided when the rounds ran out, small points
@@ -261,7 +263,7 @@ they still work; if yours ever stops appearing, paste the file instead.
 
 Antigravity's "workflows" are saved prompts triggered with `/`
 ([docs](https://antigravity.google/docs/ide/workflows/)). A workflow file
-is limited to 12,000 characters and `PLANGENIE.md` is about 39,000, so the
+is limited to 12,000 characters and `PLANGENIE.md` is about 42,000, so the
 workflow cannot hold the file itself; it points at it instead:
 
 1. Put a copy of `PLANGENIE.md` in the root of your workspace.
@@ -304,7 +306,7 @@ Code version, send the `.claude/skills/plangenie/` and
 | `.github/prompts/plangenie.prompt.md` | Copilot adapter (`/plangenie`) — hands the review step to `/council` |
 | `.github/prompts/council.prompt.md` | Copilot `/council` — the council on any document, also used by `/plangenie` |
 | `.github/prompts/council-review.prompt.md` | Copilot reviewer-seat prompt for a second chat |
-| `planning/` | Created in the folder you run PlanGenie from; everything it writes goes here |
+| `planning/` | Created in the folder you run PlanGenie from; everything it writes goes here — the one exception is the reviewer-seat agent files: the Claude Code council edits the two in `.claude/agents/` (or `~/.claude/agents/`) in place while it runs and restores them at close, and the Copilot council may create `.github/agents/council-seat-*.agent.md` with your permission |
 | `planning/PLAN.md`, `planning/UNKNOWNS.md` | The plan and the register of knowns and unknowns |
 | `planning/CHECKPOINT.md` | Where PlanGenie is right now — lets any stop continue from the exact step |
 | `planning/packets/` | The reviewers' debate: packets, critiques, merge files (each one the running ledger of every point so far), `FINAL.md` |

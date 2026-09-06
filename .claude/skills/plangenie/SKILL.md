@@ -33,6 +33,11 @@ resuming — never move them silently.
   state from the transcript. If the checkpoint says Phase 4 with the
   automated council, the council stage comes from `planning/council_state/LOG.md` via the
   council skill's Resuming section (Step 2) — `CHECKPOINT.md` only mirrors it.
+  **`Phase: 4` with LOG.md's last `STATUS:` `CLOSED`** (the checkpoint's
+  `Council:` line says `closed`) means the council finished but Phase 5
+  never ran — the stop came between the council's close and the final
+  plan: go straight to Step 3 (Phase 5). Never treat it as a completed
+  council to archive or as a new council to set up.
 - **`Status: FINISHED`:** say the plan was finished on the recorded date and
   AskUserQuestion: revise this plan (re-enter Phase 4 or edit) / start a new
   plan (ask for a different folder, or archive as above) / nothing.
@@ -108,7 +113,7 @@ this order and say which copy you are using:
 The council skill text is authoritative for mechanics EXCEPT where the
 numbered overrides below contradict it — the overrides win. Do not
 paraphrase the mechanics here or from memory: read them. This adapter was
-written against the council skill's marker line `council-protocol: v6`; if
+written against the council skill's marker line `council-protocol: v7`; if
 that file shows a different version (or no marker), stop and tell the user
 the adapter needs review before running a council.
 
@@ -127,7 +132,11 @@ council skill's step-3 fallback (Claude-only, or relay) applies.
    plugin's session cleanup has since deleted. (A run resumed through Step 0
    normally lands here with `CHECKPOINT.md` already read; LOG.md still wins
    for the council stage.) A finished round is NOT a
-   finished council. Do NOT archive or overwrite anything. If the user
+   finished council. A LOG.md whose last `STATUS:` is `CLOSED` while
+   `CHECKPOINT.md` still says `Phase: 4` (not `FINISHED`) is a council
+   that closed without Phase 5: skip this preflight and the council
+   entirely and go to Step 3 — it is neither a run to archive nor a new
+   council to set up. Do NOT archive or overwrite anything. If the user
    declares the interrupted run abandoned, note that decision now; the
    cancellation of outstanding jobs and the `STATUS: ABANDONED` LOG write
    happen in step 4 — the run then counts as completed for archival. If
@@ -218,11 +227,16 @@ PlanGenie overrides on top of the council skill's protocol:
    decide, not the user.** No per-refinement AskUserQuestion. An edit the
    seats agreed on is applied to PLAN.md at once and tagged `[CANDIDATE]
    (council-agreed: <point ids>)` — or `[CONFIRMED] (verified: <source>,
-   <date>)` only when a seat actually verified the claim with a tool and
-   named the source in its critique — never `[CONFIRMED] (user approved)`
-   (Hard Rule 1: the user did not approve it). Route every claim a seat
-   marked UNVERIFIABLE to the seat that can check it in the next packet, or
-   record it in UNKNOWNS.md as an unresolved verification obligation. If a
+   <date>; council-agreed: <point ids>)` only when a seat actually verified
+   the claim with a tool and named the source in its critique — never
+   `[CONFIRMED] (user approved)` (Hard Rule 1: the user did not approve
+   it). Both forms carry the point IDs: they are the marker the council
+   skill's reconciliation looks for after an interrupted apply, so a
+   verified edit without them cannot be told from a pending one. Every
+   claim a seat marked UNVERIFIABLE gets its own point ID (state: open
+   verification — it counts as unresolved in the percentage); route it to
+   the seat that can check it in the next packet, or record it in
+   UNKNOWNS.md as an unresolved verification obligation. If a
    seat left a point unanswered, re-send that seat's packet AT MOST ONCE per
    round; if the verdict is still missing, the point is deadlocked and the
    seat failed for the round; do not loop. Keep UNKNOWNS.md in sync after
@@ -249,7 +263,9 @@ PlanGenie overrides on top of the council skill's protocol:
    as options plus "leave open"), and the one closing question (accept, or
    run more rounds). The open items include every point still carried when
    the rounds stopped, minor ones and refinements included — FINAL.md's
-   closing ledger lists every point ID with its final state. A resolution
+   closing ledger lists every point ID with its final state, updated at
+   every verdict and rewritten before `FINAL REVIEW (resolved)`, per the
+   council skill's Final review step 3. A resolution
    the user picks is applied and tagged `[CONFIRMED] (user approved, final
    review item k)`; every item left open is recorded in PLAN.md's Remaining
    Unknowns as `[OPEN]` — at ANY exit, an early stop included. The council
@@ -265,11 +281,15 @@ PlanGenie overrides on top of the council skill's protocol:
    <stage>)` and the `RESUME:` line to `planning/council_state/LOG.md`, and commits — and
    THEN PLANGENIE.md's pause procedure writes `CHECKPOINT.md` (`Phase: 4`,
    `Council:` mirroring the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
-   resume` from the same directory) reads `planning/council_state/LOG.md`, the current
-   round's critiques and `planning/packets/round-N-merge.md` (the cumulative
-   ledger of every point so far; or `planning/packets/FINAL.md` during the
-   final review) only, and continues at the recorded stage —
-   setup answers and final-review verdicts already logged are never
+   resume` from the same directory) reads `planning/council_state/LOG.md`, the
+   merge file its `LEDGER:` line names (the newest one — the previous
+   round's until the current round is merged; the cumulative ledger of
+   every point so far, and the only place a frozen point's arguments
+   survive), the current round's packet(s) and whichever of its critiques
+   are on disk (or `planning/packets/FINAL.md` during the final review) —
+   nothing else — and continues at the recorded stage; keep
+   `CHECKPOINT.md`'s `Ledger` line equal to LOG.md's `LEDGER:` at every
+   mirror. Setup answers and final-review verdicts already logged are never
    re-asked, and a round whose Codex job was lost is re-dispatched with its
    saved packet.
 
