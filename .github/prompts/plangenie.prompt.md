@@ -1,5 +1,5 @@
 ---
-mode: 'agent'
+agent: 'agent'
 description: 'Turn a one-line software idea into a fully-interviewed, council-reviewed implementation plan (PlanGenie, Copilot edition)'
 ---
 
@@ -85,7 +85,7 @@ with these Copilot specifics:
 **Mechanics come from the `/council` prompt; content comes from
 PLANGENIE.md.** Read `.github/prompts/council.prompt.md` and follow its
 Steps 0–4 and its "Stopping and pausing" section exactly. This adapter was
-written against that file's marker `council-protocol: v5`; if it shows a
+written against that file's marker `council-protocol: v6`; if it shows a
 different version (or none), stop and say the adapter needs review. If the
 file is missing, say so and run PLANGENIE.md's relay mode instead — do not
 improvise council mechanics.
@@ -99,7 +99,10 @@ improvise council mechanics.
 2. **Setup questions = consent:** ask the `/council` prompt's five setup
    questions (seat 1 model, seat 2 model, effort, stop rule, round limit)
    with its preface. PlanGenie asks no separate stop-rule or seat questions.
-   Nothing is created or moved before the answers are in.
+   Nothing is created or moved before the answers are in — but write each
+   answer to `CHECKPOINT.md`'s `Council: setup (…)` line the moment it
+   arrives, so a Stop between two questions loses nothing and a resume asks
+   only the unanswered ones. LOG.md is written from those answers in step 4.
 3. **Mode:** decide automated vs relay exactly as the `/council` prompt's
    Step 1 says (subagents available and models pinnable → automated;
    otherwise relay, where the user carries each packet file to a second
@@ -131,17 +134,26 @@ improvise council mechanics.
    verified the claim with a tool and named the source — never `[CONFIRMED]
    (user approved)`. Route every UNVERIFIABLE claim to the seat that can
    check it next round, or record it in UNKNOWNS.md as an open verification
-   item. Keep UNKNOWNS.md in sync after every apply. If the workspace is a
-   git repository, commit each round by explicit pathspec only:
-   `git commit -m "council: round N" -- planning/PLAN.md planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_state/LOG.md planning/packets/round-N-*.md planning/status/next_session.md planning/status/progress.md`.
+   item. Keep UNKNOWNS.md in sync after every apply. Round 1 applies only
+   what both seats fixed the same way (a shared concern with different fixes
+   is carried), and on a resume every apply is reconciled first, per the
+   `/council` prompt. If the workspace is a git repository, stage and commit
+   each round by explicit pathspec only — `git add -- <paths>` and then
+   `git commit -m "council: round N" -- <the same paths>`, with the paths
+   `planning/PLAN.md planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_state/LOG.md planning/packets/round-N-*.md planning/status/next_session.md planning/status/progress.md`
+   (the `git add` is what makes the round's new packet and critique files
+   known to git).
 5. **CHECKPOINT.md mirrors LOG.md:** at every council stage change, rewrite
    `CHECKPOINT.md` with `Phase: 4` and a `Council:` line equal to LOG.md's
    current `STATUS:`. For the council's stage, LOG.md wins.
 6. **Final review** per the `/council` prompt's Step 4: `planning/packets/FINAL.md`
-   first, the full PLAN.md shown, only the open items asked, then the one
+   first, the full PLAN.md shown, only the open items asked (every point
+   still carried at the stop is one of them, minor ones included; FINAL.md's
+   ledger lists every point ID with its final state), then the one
    closing question. A resolution the user picks is applied and tagged
-   `[CONFIRMED] (user approved)`; every item left open goes into PLAN.md's
-   Remaining Unknowns as `[OPEN]` — at ANY exit, an early stop included.
+   `[CONFIRMED] (user approved, final review item k)`; every item left open
+   goes into PLAN.md's Remaining Unknowns as `[OPEN]` — at ANY exit, an
+   early stop included.
    Offer to delete any seat agent files the council created. Then Step 3.
 
 ## Step 3 — finish
