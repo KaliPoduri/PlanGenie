@@ -119,7 +119,7 @@ reviewers are debating, anywhere — and continue later from that exact spot.
 
 Where the place is kept: with a coding tool, in a small
 `planning/CHECKPOINT.md` next to `planning/PLAN.md` (plus
-`planning/council_tracking/LOG.md` during the review). In a plain web chat
+`planning/council_state/LOG.md` during the review). In a plain web chat
 that cannot save files, PlanGenie instead prints a RESUME BLOCK at every
 phase boundary and whenever you type "pause" — copy it somewhere safe and
 paste it, together with `PLANGENIE.md`, into the new chat. Closing such a
@@ -205,7 +205,7 @@ The three commands:
   limit; runs the rounds as Copilot subagents when your Copilot has them,
   and otherwise tells you which packet file to carry to a second chat;
   applies what both seats agree on; asks you only about the open items at
-  the end; and keeps `planning/council_tracking/LOG.md` so a stop and a later `/council` on
+  the end; and keeps `planning/council_state/LOG.md` so a stop and a later `/council` on
   the same file resume where it stopped.
 - `/council-review` — the reviewer seat for that second chat: pick a
   DIFFERENT model from the model picker, type `/council-review`, and attach

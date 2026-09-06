@@ -30,7 +30,7 @@ resuming — never move them silently.
   lookup), then follow its "Pause and resume" section exactly — it lists the
   only files to read per phase; do not read anything else and never rebuild
   state from the transcript. If the checkpoint says Phase 4 with the
-  automated council, the council stage comes from `planning/council_tracking/LOG.md` via the
+  automated council, the council stage comes from `planning/council_state/LOG.md` via the
   council skill's Resuming section (Step 2) — `CHECKPOINT.md` only mirrors it.
 - **`Status: FINISHED`:** say the plan was finished on the recorded date and
   AskUserQuestion: revise this plan (re-enter Phase 4 or edit) / start a new
@@ -84,7 +84,7 @@ these Claude Code specifics:
 - **Any interrupt is a pause.** While PlanGenie is working — above all
   during a council round, which is one long turn — the user cannot type
   anything it will act on; Esc (or Ctrl+C, closing the window, /clear, a
-  crash) is the stop, and `CHECKPOINT.md` plus `planning/council_tracking/LOG.md` are at most
+  crash) is the stop, and `CHECKPOINT.md` plus `planning/council_state/LOG.md` are at most
   one step stale. Tell the user this once, when the interview starts, in
   one sentence: "press Esc to stop at any time; run `/plangenie resume` to
   continue" (the council skill's Setup preface repeats it with the
@@ -112,7 +112,7 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
 
 **Preflight (before round 1), in this order:**
 1. **Resume check first (classify only — nothing is moved, cancelled or
-   written in this step):** if `planning/council_tracking/LOG.md` exists and its last `STATUS:`
+   written in this step):** if `planning/council_state/LOG.md` exists and its last `STATUS:`
    line is not `CLOSED` or `ABANDONED` — `IN PROGRESS (…)` and `PAUSED (…)`
    both count — (or it has no `STATUS:` line but shows a dispatched round
    without recorded results), this is an interrupted or paused run —
@@ -159,7 +159,7 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
    their removal (staging a deletion at `planning/packets/round-1-packet.md` does not
    violate the archive-*/ exclusion). If the project root is not a git repository, AskUserQuestion —
    `git init` it, or run with file-only checkpoints (still write
-   `planning/council_tracking/LOG.md` and `planning/status/next_session.md` each
+   `planning/council_state/LOG.md` and `planning/status/next_session.md` each
    round; skip the commit).
 
 PlanGenie overrides on top of the council skill's protocol:
@@ -207,8 +207,8 @@ PlanGenie overrides on top of the council skill's protocol:
    every apply (agreed items leave the register, deadlocked items are noted
    as open). Round commits (and pause commits) are made
    BY explicit pathspec — `git commit -m "..." -- planning/PLAN.md
-   planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_tracking/LOG.md
-   planning/packets/round-N-*.md planning/council_tracking/round-N-*.md planning/status/next_session.md
+   planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_state/LOG.md
+   planning/packets/round-N-*.md planning/status/next_session.md
    planning/status/progress.md <archived paths whose deletion this run
    staged>` — never
    `planning/council_tracking/archive-*/`, so the user's unrelated staged work is left
@@ -217,7 +217,7 @@ PlanGenie overrides on top of the council skill's protocol:
 5. **Exit and final review:** the council skill's stop rule (its step 5)
    decides when the rounds end — there is no another-round question at
    round checkpoints, only the one-paragraph round summary. Then run the
-   council skill's Final review: write `planning/council_tracking/FINAL.md`, show the full
+   council skill's Final review: write `planning/packets/FINAL.md`, show the full
    current PLAN.md, ask the open items only (each with the seats' positions
    as options plus "leave open"), and the one closing question (accept, or
    run more rounds). A resolution the user picks is applied and tagged
@@ -227,15 +227,15 @@ PlanGenie overrides on top of the council skill's protocol:
 6. **Pause and resume inside the council:** any interrupt (Esc, Ctrl+C,
    session end, a crash) is a pause — the council skill's "Stopping and
    pausing" section says what happens to seats in flight, and Step 0 or
-   `/council resume` continues from `planning/council_tracking/LOG.md`. The typed word
+   `/council resume` continues from `planning/council_state/LOG.md`. The typed word
    `pause` (at a setup question, a final-review verdict, a fallback choice,
    or as the first message after an Esc) runs that same section — which
    records the state of any Codex job, writes `STATUS: PAUSED (round N,
-   <stage>)` and the `RESUME:` line to `planning/council_tracking/LOG.md`, and commits — and
+   <stage>)` and the `RESUME:` line to `planning/council_state/LOG.md`, and commits — and
    THEN PLANGENIE.md's pause procedure writes `CHECKPOINT.md` (`Phase: 4`,
    `Council:` mirroring the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
-   resume` from the same directory) reads `planning/council_tracking/LOG.md`, the current
-   round's critiques and `planning/council_tracking/round-N-merge.md` (or `planning/council_tracking/FINAL.md`
+   resume` from the same directory) reads `planning/council_state/LOG.md`, the current
+   round's critiques and `planning/packets/round-N-merge.md` (or `planning/packets/FINAL.md`
    during the final review) only, and continues at the recorded stage —
    setup answers and final-review verdicts already logged are never
    re-asked, and a round whose Codex job was lost is re-dispatched with its

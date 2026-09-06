@@ -32,7 +32,7 @@ else, so a fresh chat spends its room on the plan. A `CHECKPOINT.md` or
   (Step 1), then follow its "Pause and resume" section exactly — it lists
   the only files to read per phase; never rebuild state from chat history.
   If the checkpoint says Phase 4, the council's own stage comes from
-  `planning/council_tracking/LOG.md` via the `/council` prompt's Step 0 — `CHECKPOINT.md` only
+  `planning/council_state/LOG.md` via the `/council` prompt's Step 0 — `CHECKPOINT.md` only
   mirrors it.
 - **`Status: FINISHED`:** say the plan was finished on the recorded date and
   ask: revise this plan (re-enter Phase 4 or edit) / start a new plan (in a
@@ -92,7 +92,7 @@ improvise council mechanics.
 
 **Preflight, in this order:**
 
-1. **Resume check (classify only):** if `planning/council_tracking/LOG.md` exists and its last
+1. **Resume check (classify only):** if `planning/council_state/LOG.md` exists and its last
    `STATUS:` line is not `CLOSED` or `ABANDONED`, this is an interrupted or
    paused council — follow the `/council` prompt's Step 0. A finished round
    is NOT a finished council. Archive nothing yet.
@@ -132,11 +132,11 @@ improvise council mechanics.
    check it next round, or record it in UNKNOWNS.md as an open verification
    item. Keep UNKNOWNS.md in sync after every apply. If the workspace is a
    git repository, commit each round by explicit pathspec only:
-   `git commit -m "council: round N" -- planning/PLAN.md planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_tracking/LOG.md planning/packets/round-N-*.md planning/council_tracking/round-N-*.md planning/status/next_session.md planning/status/progress.md`.
+   `git commit -m "council: round N" -- planning/PLAN.md planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_state/LOG.md planning/packets/round-N-*.md planning/status/next_session.md planning/status/progress.md`.
 5. **CHECKPOINT.md mirrors LOG.md:** at every council stage change, rewrite
    `CHECKPOINT.md` with `Phase: 4` and a `Council:` line equal to LOG.md's
    current `STATUS:`. For the council's stage, LOG.md wins.
-6. **Final review** per the `/council` prompt's Step 4: `planning/council_tracking/FINAL.md`
+6. **Final review** per the `/council` prompt's Step 4: `planning/packets/FINAL.md`
    first, the full PLAN.md shown, only the open items asked, then the one
    closing question. A resolution the user picks is applied and tagged
    `[CONFIRMED] (user approved)`; every item left open goes into PLAN.md's
@@ -160,5 +160,5 @@ resume.
   agent files the `/council` prompt describes.
 - Never simulate a reviewer seat and never present a council-agreed edit as
   user-approved.
-- Never rebuild state from chat history: `CHECKPOINT.md` and `planning/council_tracking/LOG.md`
+- Never rebuild state from chat history: `CHECKPOINT.md` and `planning/council_state/LOG.md`
   are the state, even in the same chat.
