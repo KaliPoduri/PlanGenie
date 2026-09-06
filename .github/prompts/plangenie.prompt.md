@@ -19,8 +19,8 @@ bare file name below lives there). Check for it before reading anything
 else, so a fresh chat spends its room on the plan. A `CHECKPOINT.md` or
 `council/` at the workspace root instead belongs to a run from before the
 `planning/` layout: say so and offer to move them into `planning/` and
-`planning/packets/` (packets) and `planning/council_tracking/` (the rest of
-`council/`) before resuming — never move them silently.
+`planning/packets/` (everything but LOG.md) and `planning/council_state/`
+(LOG.md) before resuming — never move them silently.
 
 - **`CHECKPOINT.md` exists with `Status: IN PROGRESS` or `PAUSED`:** read it
   (it is short), say in one line where the run stopped (its `Phase`, `Step`
@@ -104,10 +104,11 @@ improvise council mechanics.
    Step 1 says (subagents available and models pinnable → automated;
    otherwise relay, where the user carries each packet file to a second
    chat with `/council-review`). Ask before creating any seat agent files.
-4. **Only then:** create `planning/packets/` and `planning/council_tracking/`;
+4. **Only then:** create `planning/packets/` and `planning/council_state/`;
    if they hold a previous COMPLETED run (LOG.md `STATUS: CLOSED` or
-   `ABANDONED`), move that run's packets and tracking files to
-   `planning/council_tracking/archive-<date-time>/` first.
+   `ABANDONED`), move that run's debate files to
+   `planning/packets/archive-<date-time>/` and its LOG.md to
+   `planning/council_state/archive-<date-time>/` first.
 
 **PlanGenie overrides on top of the `/council` protocol:**
 
@@ -155,7 +156,7 @@ resume.
 
 - The only files you create or edit are `PLAN.md`, `UNKNOWNS.md`,
   `CHECKPOINT.md`, files under `planning/packets/`,
-  `planning/council_tracking/` and `planning/status/`, and — with
+  `planning/council_state/` and `planning/status/`, and — with
   permission — the seat
   agent files the `/council` prompt describes.
 - Never simulate a reviewer seat and never present a council-agreed edit as

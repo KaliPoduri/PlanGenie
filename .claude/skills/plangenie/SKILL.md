@@ -14,8 +14,9 @@ bare file name below lives there). Check for it FIRST, before loading
 anything else, so a fresh session spends its context on the plan, not on
 re-orientation. A `CHECKPOINT.md` or `council/` sitting at the directory
 root instead belongs to a run from before the `planning/` layout: say so
-and offer to move them into `planning/` (packets to `planning/packets/`,
-the rest of `council/` to `planning/council_tracking/`) before
+and offer to move them into `planning/` (`council/LOG.md` to
+`planning/council_state/`, the rest of `council/` to `planning/packets/`)
+before
 resuming — never move them silently.
 
 - **`CHECKPOINT.md` exists and its `Status:` is `IN PROGRESS` or `PAUSED`:**
@@ -23,7 +24,7 @@ resuming — never move them silently.
   `Step` and `Next` lines) and AskUserQuestion: **Resume from there
   (recommended)** / **Start over** (the old run's files in `planning/` —
   `PLAN.md`, `UNKNOWNS.md`, `CHECKPOINT.md`, `packets/`,
-  `council_tracking/`, `status/` — are
+  `council_state/`, `status/` — are
   moved to `planning/archive-<date-time>/` first; nothing is deleted) /
   **Something else**. `/plangenie resume` skips
   the question and resumes directly. On resume: load `PLANGENIE.md` (Step 1's
@@ -124,7 +125,7 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
    declares the interrupted run abandoned, note that decision now; the
    cancellation of outstanding jobs and the `STATUS: ABANDONED` LOG write
    happen in step 4 — the run then counts as completed for archival. If
-   `planning/packets/` or `planning/council_tracking/` has files but no
+   `planning/packets/` or `planning/council_state/` has files but no
    LOG.md, classify it as a completed foreign run: ALL the root contents of
    both folders, whatever their names, are moved in step 4 —
    this branch needs no LOG.md evidence and is not limited to step 4's named
@@ -148,13 +149,13 @@ PLANGENIE.md relay mode. Do not improvise dispatch mechanics.
 4. **Only then create/move artifacts:** perform the actions classified in
    step 1 — for an abandoned run, cancel its outstanding jobs and write its
    `STATUS: ABANDONED` line first; create `planning/packets/` and
-   `planning/council_tracking/` if missing; if they hold files from a
+   `planning/council_state/` if missing; if they hold files from a
    previous COMPLETED run (LOG.md `STATUS: CLOSED` or `ABANDONED` — never
    merely "last round finished" — or the no-LOG.md foreign-run case from
-   step 1), move that run's packets, critiques, merge files, FINAL.md and
-   LOG.md together to
-   `planning/council_tracking/archive-<date-time>/` (timestamped — same-day reruns must not
-   collide), and stage the git deletions of the moved files in the next
+   step 1), move that run's debate files to
+   `planning/packets/archive-<date-time>/` and its LOG.md to
+   `planning/council_state/archive-<date-time>/` (same timestamp for both;
+   same-day reruns must not collide), and stage the git deletions of the moved files in the next
    commit — the old paths were committed, and nothing else will ever stage
    their removal (staging a deletion at `planning/packets/round-1-packet.md` does not
    violate the archive-*/ exclusion). If the project root is not a git repository, AskUserQuestion —
@@ -211,7 +212,7 @@ PlanGenie overrides on top of the council skill's protocol:
    planning/packets/round-N-*.md planning/status/next_session.md
    planning/status/progress.md <archived paths whose deletion this run
    staged>` — never
-   `planning/council_tracking/archive-*/`, so the user's unrelated staged work is left
+   `planning/*/archive-*/`, so the user's unrelated staged work is left
    untouched; review the set with `git status --short -- <the same paths>`
    first.
 5. **Exit and final review:** the council skill's stop rule (its step 5)

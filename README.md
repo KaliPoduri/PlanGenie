@@ -262,7 +262,7 @@ Code version, send the `.claude/skills/plangenie/` folder along with
 | `planning/` | Created in the folder you run PlanGenie from; everything it writes goes here |
 | `planning/PLAN.md`, `planning/UNKNOWNS.md` | The plan and the register of knowns and unknowns |
 | `planning/CHECKPOINT.md` | Where PlanGenie is right now — lets any stop continue from the exact step |
-| `planning/packets/` | Only the council packets — the files a reviewer is handed |
-| `planning/council_tracking/` | The council's own records: `LOG.md` (its progress, used for pause/resume), critiques, merge files, `FINAL.md` |
+| `planning/packets/` | The reviewers' debate: packets, critiques, merge files, `FINAL.md` |
+| `planning/council_state/` | `LOG.md` — where the council is, used to pause and resume it |
 | `planning/status/next_session.md` | One paragraph: where the run is and what happens next |
 | `planning/status/progress.md` | One line per milestone (phase entered, round applied, pause, resume, finished) |

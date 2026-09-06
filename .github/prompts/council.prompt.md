@@ -34,8 +34,8 @@ after a pause or a Stop:
 
 1. Read only `planning/council_state/LOG.md` (the setup answers live there — never re-ask
    them), the document under review (current version on disk), and the
-   CURRENT round's packet under `planning/packets/` and its critiques and
-   merge file under `planning/council_tracking/`, or
+   CURRENT round's files under `planning/packets/` (packet, critiques,
+   merge file), or
    `planning/packets/FINAL.md` during the final review. Do not read earlier rounds'
    files — LOG.md carries their tallies. Do not rely on chat memory.
 2. Tell the user in one paragraph where the council is (round, stage, the
@@ -50,7 +50,8 @@ after a pause or a Stop:
    `IN PROGRESS` / `FINAL REVIEW` form of that stage.
 
 If the last STATUS is `CLOSED` / `ABANDONED`, ask the user whether to move the
-old files to `planning/council_tracking/archive-<date>/` and start a new council on the
+old debate files to `planning/packets/archive-<date>/` and its LOG.md to
+`planning/council_state/archive-<date>/`, then start a new council on the
 document, or stop.
 
 ## Step 1 — setup questions (once per council)
@@ -117,10 +118,10 @@ in relay mode.
 ## Step 2 — LOG.md and the STATUS grammar
 
 `planning/packets/` in the workspace root (the folder open in VS Code)
-holds ONLY the packet files (`round-N-packet*.md` — what a reviewer is
-handed). Everything else the council writes and needs for pause/resume goes
-to `planning/council_tracking/`: LOG.md, the critiques, merge files,
-FINAL.md, and `archive-<date>/`. Its hand-off notes go to
+holds the debate: the packets, critiques, merge files, FINAL.md, and
+`archive-<date>/` for a previous council's debate. `planning/council_state/`
+holds what the council needs to restart: LOG.md, and `archive-<date>/` for a
+previous council's LOG.md. Its hand-off notes go to
 `planning/status/next_session.md` (one paragraph: where the council is and
 the next action; rewritten every round, on pause, and at close) and
 `planning/status/progress.md` (one appended line per round applied, pause,
@@ -322,7 +323,7 @@ An abrupt stop skips the receipt; resumption is identical.
 ## Hard rules
 
 - The ONLY files you edit are the document under review and files under
-  `planning/packets/`, `planning/council_tracking/` and `planning/status/`
+  `planning/packets/`, `planning/council_state/` and `planning/status/`
   (plus the optional seat agent files, with permission).
 - Never simulate, summarise from memory, or invent a seat's critique, and
   never count your own opinion as a verdict — the percentage comes from the
