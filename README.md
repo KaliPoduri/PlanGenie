@@ -168,11 +168,23 @@ commands ([docs](https://code.visualstudio.com/docs/agent-customization/prompt-f
 Note: this works in VS Code's Copilot Chat. The separate Copilot CLI does not
 support prompt files at the time of writing — paste the file there instead.
 
-This repo also ships `.github/prompts/council-review.prompt.md`, a
-reviewer-seat prompt for the council step: open a second Copilot chat, pick a
-DIFFERENT model from the model picker, type `/council-review`, and attach the
-packet file PlanGenie saved. Not yet field-tested — if the command does not
-appear, pasting the packet works as always.
+This repo also ships two more Copilot commands in `.github/prompts/`
+(Copilot finds them automatically when this folder is open in VS Code):
+
+- `/council-review` — the reviewer seat. Open a second Copilot chat, pick a
+  DIFFERENT model from the model picker, type `/council-review`, and attach
+  the packet file PlanGenie saved.
+- `/council` — the whole council on its own, for an existing plan or document
+  without running PlanGenie: type `/council`, attach the file, optionally add
+  a round count (default 3, max 5). It asks which two models to use, runs the
+  rounds (automatically when Copilot subagents are available, otherwise it
+  tells you which packet to carry to a second chat with `/council-review`),
+  lets you accept or reject each refinement, and keeps `council/LOG.md` so
+  `pause` and a later `/council` on the same file resume where it stopped.
+
+Neither is field-tested yet — if a command does not appear, check that
+"Chat: Prompt Files" is enabled in VS Code settings; pasting the packet works
+as always.
 
 ### OpenAI Codex (CLI and IDE extension)
 
@@ -215,6 +227,7 @@ Code version, send the `.claude/skills/plangenie/` folder along with
 | `PLANGENIE.md` | The portable agent — paste into any AI chat |
 | `.claude/skills/plangenie/SKILL.md` | Claude Code adapter (`/plangenie`) |
 | `.github/prompts/council-review.prompt.md` | Copilot reviewer-seat prompt for the council step |
+| `.github/prompts/council.prompt.md` | Copilot `/council` — run the council alone on any existing document |
 | `PLAN.md`, `UNKNOWNS.md` | Created per project while PlanGenie runs |
 | `CHECKPOINT.md` | Where PlanGenie is right now — lets "pause" / "resume" continue from the exact step |
 | `council/LOG.md` | The council's own progress record during the review step |
