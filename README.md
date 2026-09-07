@@ -93,10 +93,15 @@ the two reviewers could not settle, each with both sides in plain words,
 plus anything still undecided when the rounds ran out, small points
 included — and you pick a side or leave them open. Nothing a reviewer
 raised is dropped on the way: every point ends up applied, withdrawn,
-rejected by you, or listed as open. One last question: accept the plan,
-or run more rounds. (In Claude Code with the Codex plugin the whole step
-runs by itself: you answer the setup questions, wait, and judge the
-leftovers.)
+rejected by you, or listed as open. One thing the reviewers never do on
+their own: change something you said in the interview — if they agree on
+a change that contradicts one of your answers, it is held back and shown
+to you as one of the leftovers ("keep what I said" or take their change).
+One last question: accept the plan, or run more rounds — more rounds send
+the leftovers you left open back to the reviewers for another look, and
+the round numbers keep counting up. (In Claude Code with the Codex plugin
+the whole step runs by itself: you answer the setup questions, wait, and
+judge the leftovers.)
 
 **Step 6 — Get your plan.** PlanGenie prints the final `PLAN.md` (with a
 coding tool it is saved as `planning/PLAN.md` in the folder you started
@@ -141,7 +146,14 @@ automated council):
 | How you stopped | What happens |
 |---|---|
 | Esc, session still open | The GPT reviewer keeps working in the background; "resume" collects its answer |
-| Closed or cleared the session, crash, usage limit | The Codex plugin cancels that reviewer; the round is simply run again when you resume. Everything else is kept |
+| Closed or cleared the session, crash, usage limit | The Codex plugin normally cancels that reviewer (after a crash it may survive — "resume" checks and collects or cancels it); either way the round is simply run again when you resume. Everything else is kept |
+
+If you choose **Start over** instead of resuming while a review is still
+running, PlanGenie first stops that reviewer and puts the reviewer settings
+back, then files the old run away — nothing is deleted. To pick up in a new
+session, start Claude Code in the folder you ran PlanGenie from (the one
+that contains `planning/`), not necessarily the repository's top folder;
+the pause message names that folder.
 
 ## Set up in your coding tool
 
@@ -233,7 +245,10 @@ The three commands:
 - `/council` — the council on its own, for any existing plan or document:
   type `/council` and attach the file. It asks which two models to use, the
   reasoning effort, the stop rule (for example 95% agreement) and a round
-  limit; runs the rounds as Copilot subagents when your Copilot has them,
+  limit; runs the rounds as Copilot subagents when your Copilot has them
+  (one rule from VS Code's docs: a subagent cannot use a model of a higher
+  cost tier than the chat's own model, so pick the chat's model at least
+  as high as the seats you want, or that seat falls back to relay),
   and otherwise tells you which packet file to carry to a second chat;
   applies what both seats agree on; asks you only about the open items at
   the end; and keeps `planning/council_state/LOG.md` so a stop and a later `/council` on
@@ -253,7 +268,9 @@ Codex reads custom prompts from your home directory
 
 1. Save the file as `~/.codex/prompts/plangenie.md`
    (Windows: `C:\Users\<you>\.codex\prompts\plangenie.md`).
-2. In Codex, open the slash menu and pick it — `/prompts:plangenie` on current
+2. Restart Codex so it loads the new prompt (restart the CLI session, or
+   reload the IDE extension).
+3. In Codex, open the slash menu and pick it — `/prompts:plangenie` on current
    versions (`/plangenie` on older ones).
 
 Note: OpenAI now marks custom prompts as deprecated in favor of "skills", but
