@@ -40,6 +40,11 @@ resuming — never move them silently.
   state from the transcript. If the checkpoint says Phase 4 with the
   automated council, the council stage comes from `planning/council_state/LOG.md` via the
   council skill's Resuming section (Step 2) — `CHECKPOINT.md` only mirrors it.
+  If the checkpoint's `Council:` line says `relay round N …` (relay chosen
+  at the start, or the handoff in Step 2's preflight step 3), LOG.md is
+  `HANDED OFF (relay, …)` or absent and is not consulted: follow
+  PLANGENIE.md's relay mode from the checkpoint and its `Ledger:` file and
+  skip Step 2's override entirely.
   **`Phase: 4` with LOG.md's last `STATUS:` `CLOSED`** (the checkpoint's
   `Council:` line says `closed`) means the council finished but Phase 5
   never ran — the stop came between the council's close and the final
@@ -62,6 +67,7 @@ Read `PLANGENIE.md`:
 1. First look in this skill's own directory (`~/.claude/skills/plangenie/PLANGENIE.md` — the user-level skills directory, not the project's `.claude/`).
 2. If not there, a copy in the project root may exist — use it only if the user confirms that copy is the one they want.
 3. If missing in both, ask the user where it is. Do NOT reconstruct it from memory.
+4. **Drift check:** if a `PLANGENIE.md` also exists in the project root and differs from the copy loaded (`cmp -s`, or compare hashes), say which copy was loaded and which is newer, and AskUserQuestion which to use — in this repository the post-commit hook syncs the personal copy only on commit, so an uncommitted edit leaves the two apart. Then confirm the loaded copy's marker line reads `plangenie-core: v1` (this adapter was written against it); a different or missing marker means the core or the adapter needs review — say so and stop.
 
 Before the first write: state the absolute path of the `planning/` folder
 you are about to write into (created under the current working directory if
@@ -120,7 +126,7 @@ this order and say which copy you are using:
 The council skill text is authoritative for mechanics EXCEPT where the
 numbered overrides below contradict it — the overrides win. Do not
 paraphrase the mechanics here or from memory: read them. This adapter was
-written against the council skill's marker line `council-protocol: v8`; if
+written against the council skill's marker line `council-protocol: v9`; if
 that file shows a different version (or no marker), stop and tell the user
 the adapter needs review before running a council.
 
@@ -132,8 +138,10 @@ council skill's step-3 fallback (Claude-only, or relay) applies.
 **Preflight (before round 1), in this order:**
 1. **Resume check first (classify only — nothing is moved, cancelled or
    written in this step):** if `planning/council_state/LOG.md` exists and its last `STATUS:`
-   line is not `CLOSED` or `ABANDONED` — `IN PROGRESS (…)` and `PAUSED (…)`
-   both count — (or it has no `STATUS:` line but shows a dispatched round
+   line is not `CLOSED`, `ABANDONED` or `HANDED OFF` — `IN PROGRESS (…)` and
+   `PAUSED (…)` both count; `HANDED OFF (relay, …)` means the debate
+   continues in PLANGENIE.md relay mode from `CHECKPOINT.md` (Step 0), and
+   this override does not run — (or it has no `STATUS:` line but shows a dispatched round
    without recorded results), this is an interrupted or paused run —
    follow the council skill's Resuming section, which also covers a job the
    plugin's session cleanup has since deleted. (A run resumed through Step 0
@@ -217,7 +225,19 @@ PlanGenie overrides on top of the council skill's protocol:
    (empty result or error confirmed via `status <job-id>`; a dead poll loop
    is NOT an empty result): AskUserQuestion — continue with a Claude-only
    council, or switch to PLANGENIE.md relay mode. Say plainly that
-   Claude-only loses the cross-model check. Claude-only means BOTH seats are
+   Claude-only loses the cross-model check. **Switching to relay is a
+   defined handoff, done before anything else:** run the council skill's
+   "Handing a council to relay mode" (cancel the Codex job(s), restore the
+   agent pins, `STATUS: HANDED OFF (relay, round N, <stage>)`), then set
+   CHECKPOINT.md's `Council:` line to `relay round N — awaiting seat <k>`
+   and its `Ledger:` line to the path LOG.md's `LEDGER:` names, and
+   continue PLANGENIE.md's relay mode from the files already in
+   `planning/packets/`: the round's packet file is what the user carries; a
+   complete critique already on disk is that seat's review (the Claude
+   seat's counts as seat 1; the failed Codex seat becomes seat 2, the
+   external AI the user couriers); point IDs, the ledger, the stop rule,
+   the round limit and the round number carry over unchanged. From then
+   on every resume follows Step 0's relay branch, never this override. Claude-only means BOTH seats are
    fresh Claude subagents with no shared context: seat 1 via
    `council-claude-seat` (pinned at Setup to the chosen model and effort,
    read-only tools), seat 2 via `council-claude-seat-2` (pins a DIFFERENT
@@ -268,7 +288,9 @@ PlanGenie overrides on top of the council skill's protocol:
    planning/packets/round-N-*.md planning/status/next_session.md
    planning/status/progress.md <old paths of files this run archived>`
    (the `git add` is what makes new packet and critique files known to git
-   and stages the archived deletions) — never `planning/*/archive-*/`, so
+   and stages the archived deletions; add `planning/packets/reopen-*-ledger.md`
+   whenever such a file exists — a pathspec that matches nothing makes
+   `git add` fail) — never `planning/*/archive-*/`, so
    the user's unrelated staged work is left untouched; review the set with
    `git status --short -- <the same paths>` first.
 5. **Exit and final review:** the council skill's stop rule (its step 5)
