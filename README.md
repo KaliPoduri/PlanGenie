@@ -98,8 +98,10 @@ their own: change something you said in the interview — if they agree on
 a change that contradicts one of your answers, it is held back and shown
 to you as one of the leftovers ("keep what I said" or take their change).
 One last question: accept the plan, or run more rounds — more rounds send
-the leftovers you left open back to the reviewers for another look, and
-the round numbers keep counting up. (In Claude Code with the Codex plugin
+the leftovers you left open back to BOTH reviewers for another look, and
+the round numbers keep counting up. A reopened point settles only if the
+two reviewers agree on the same change; anything they still disagree on
+comes back to you at the next final review. (In Claude Code with the Codex plugin
 the whole step runs by itself: you answer the setup questions, wait, and
 judge the leftovers.)
 
@@ -183,7 +185,11 @@ files; the council and the agent files are dependencies, not extras:
 1. Copy the folder `.claude/skills/plangenie/` to `~/.claude/skills/plangenie/`
    (on Windows: `C:\Users\<you>\.claude\skills\plangenie\`).
 2. Put a copy of `PLANGENIE.md` inside that same folder (the skill looks there
-   first, because other projects won't have the file in their root).
+   first, because other projects won't have the file in their root). Keep it
+   current: the skill checks that copy's version marker (`plangenie-core`)
+   and, in a project that also has a `PLANGENIE.md` in its root, warns when
+   the two differ and asks which to use. In this repo the git post-commit
+   hook refreshes the personal copy on every commit.
 3. Copy the folder `.claude/skills/council/` to `~/.claude/skills/council/`.
    Without it `/plangenie` cannot run the automated council and falls back
    to relay mode.
@@ -201,6 +207,9 @@ the OpenAI Codex plugin is installed, runs the council automatically: you pick
 the two models, their reasoning effort, the stop rule and the round limit up
 front; Claude and GPT then debate on their own, and you judge only the open
 items at the end. No Codex plugin? It offers Claude-only review or relay mode.
+If the GPT reviewer fails in the middle of a council, it asks the same
+question; picking relay carries the debate so far into relay mode in the
+same folder — nothing is re-run, and a later `/plangenie` resumes it there.
 One thing to know: the council pins the chosen model and effort into the two
 agent files while it runs and puts them back when it closes, so run one
 council at a time on a machine.
