@@ -26,7 +26,11 @@ else, so a fresh chat spends its room on the plan. A `CHECKPOINT.md` or
   (it is short), say in one line where the run stopped (its `Phase`, `Step`
   and `Next` lines), and ask, multiple choice: **Resume from there
   (recommended)** / **Start over** (the old run's files in `planning/` are
-  moved to `planning/archive-<date-time>/` first — nothing is deleted) /
+  moved to `planning/archive-<date-time>/` first — nothing is deleted; if
+  `planning/council_state/LOG.md` is live — last `STATUS:` neither
+  `CLOSED` nor `ABANDONED` — write `STATUS: ABANDONED` to it and offer to
+  delete any seat agent files that council created BEFORE moving anything,
+  so the next council never treats that run as resumable) /
   **Something else**. If the user's message
   already says `resume`, skip the question. On resume: load `PLANGENIE.md`
   (Step 1), then follow its "Pause and resume" section exactly — it lists
@@ -89,7 +93,7 @@ with these Copilot specifics:
 **Mechanics come from the `/council` prompt; content comes from
 PLANGENIE.md.** Read `.github/prompts/council.prompt.md` and follow its
 Steps 0–4 and its "Stopping and pausing" section exactly. This adapter was
-written against that file's marker `council-protocol: v7`; if it shows a
+written against that file's marker `council-protocol: v8`; if it shows a
 different version (or none), stop and say the adapter needs review. If the
 file is missing, say so and run PLANGENIE.md's relay mode instead — do not
 improvise council mechanics.
@@ -142,7 +146,12 @@ improvise council mechanics.
    only when a seat actually verified the claim with a tool and named the
    source — never `[CONFIRMED] (user approved)`. Both forms carry the point
    IDs: they are the marker reconciliation looks for after an interrupted
-   apply. Every UNVERIFIABLE claim gets its own point ID (open
+   apply. An agreed edit that changes, weakens, removes or contradicts a
+   `[USER] (Qn)` line or a `[CONFIRMED] (user approved, …)` line is never
+   applied on the seats' word: it becomes a `user decision` point
+   (unresolved in the percentage, never sent back to the seats) that the
+   user judges at the final review — "keep what I said" versus the
+   council's change. Every UNVERIFIABLE claim gets its own point ID (open
    verification, counted as unresolved in the percentage); route it to the
    seat that can check it next round, or record it in UNKNOWNS.md as an
    open verification item. Keep UNKNOWNS.md in sync after every apply.
@@ -166,10 +175,16 @@ improvise council mechanics.
    ledger lists every point ID with its final state, updated at every
    verdict and rewritten before `FINAL REVIEW (resolved)`), then the one
    closing question. A resolution the user picks is applied and tagged
-   `[CONFIRMED] (user approved, final review item k)`; every item left open
+   `[CONFIRMED] (user approved, final review item k)` — item numbers never
+   restart within a council; a second final review continues from the
+   first one's last number; every item left open
    goes into PLAN.md's Remaining Unknowns as `[OPEN]` — at ANY exit, an
-   early stop included.
-   Offer to delete any seat agent files the council created. Then Step 3.
+   early stop included. "Run more rounds" follows the `/council` prompt's
+   reopen transition (its Step 4.4): reopen ledger written and `LEDGER:`
+   re-pointed before any packet, the items left open become carried again,
+   round numbering continues.
+   After "accept", offer to delete any seat agent files the council
+   created. Then Step 3.
 
 ## Step 3 — finish
 

@@ -26,7 +26,14 @@ resuming — never move them silently.
   `PLAN.md`, `UNKNOWNS.md`, `CHECKPOINT.md`, `packets/`,
   `council_state/`, `status/` — are
   moved to `planning/archive-<date-time>/` first; nothing is deleted) /
-  **Something else**. `/plangenie resume` skips
+  **Something else**. **Start over with a live council:** if
+  `planning/council_state/LOG.md` exists and its last `STATUS:` is neither
+  `CLOSED` nor `ABANDONED`, run the council skill's "Abandoning a council"
+  procedure BEFORE moving anything — cancel its logged Codex jobs, restore
+  the agent files' previous `model:`/`effort:` values, write `STATUS:
+  ABANDONED` — and only then archive. Archiving a live LOG.md first would
+  leave its jobs running and let the next council record this one's
+  temporary pins as the originals. `/plangenie resume` skips
   the question and resumes directly. On resume: load `PLANGENIE.md` (Step 1's
   lookup), then follow its "Pause and resume" section exactly — it lists the
   only files to read per phase; do not read anything else and never rebuild
@@ -113,7 +120,7 @@ this order and say which copy you are using:
 The council skill text is authoritative for mechanics EXCEPT where the
 numbered overrides below contradict it — the overrides win. Do not
 paraphrase the mechanics here or from memory: read them. This adapter was
-written against the council skill's marker line `council-protocol: v7`; if
+written against the council skill's marker line `council-protocol: v8`; if
 that file shows a different version (or no marker), stop and tell the user
 the adapter needs review before running a council.
 
@@ -138,8 +145,9 @@ council skill's step-3 fallback (Claude-only, or relay) applies.
    entirely and go to Step 3 — it is neither a run to archive nor a new
    council to set up. Do NOT archive or overwrite anything. If the user
    declares the interrupted run abandoned, note that decision now; the
-   cancellation of outstanding jobs and the `STATUS: ABANDONED` LOG write
-   happen in step 4 — the run then counts as completed for archival. If
+   council skill's "Abandoning a council" procedure (cancel outstanding
+   jobs, restore the agent pins, write `STATUS: ABANDONED`) runs in step 4
+   — the run then counts as completed for archival. If
    `planning/packets/` or `planning/council_state/` has files but no
    LOG.md, classify it as a completed foreign run: ALL the root contents of
    both folders, whatever their names, are moved in step 4 —
@@ -168,8 +176,9 @@ council skill's step-3 fallback (Claude-only, or relay) applies.
    files are NOT pinned yet: that happens in step 4, after LOG.md has
    recorded their previous values.
 4. **Only then create/move artifacts:** perform the actions classified in
-   step 1 — for an abandoned run, cancel its outstanding jobs and write its
-   `STATUS: ABANDONED` line first; create `planning/packets/` and
+   step 1 — for an abandoned run, the council skill's "Abandoning a
+   council" procedure first (jobs cancelled, agent pins restored, `STATUS:
+   ABANDONED` written); create `planning/packets/` and
    `planning/council_state/` if missing; if they hold files from a
    previous COMPLETED run (LOG.md `STATUS: CLOSED` or `ABANDONED` — never
    merely "last round finished" — or the no-LOG.md foreign-run case from
@@ -232,7 +241,14 @@ PlanGenie overrides on top of the council skill's protocol:
    `[CONFIRMED] (user approved)` (Hard Rule 1: the user did not approve
    it). Both forms carry the point IDs: they are the marker the council
    skill's reconciliation looks for after an interrupted apply, so a
-   verified edit without them cannot be told from a pending one. Every
+   verified edit without them cannot be told from a pending one. **An
+   agreed edit that changes, weakens, removes or contradicts a `[USER]
+   (Qn)` line or a `[CONFIRMED] (user approved, …)` line is never applied
+   on the seats' word** (council skill Hard rule 8): it becomes a
+   `user decision` point — recorded in the ledger with the conflicting
+   line, unresolved in the percentage, never sent back to the seats — and
+   the user judges it at the final review ("keep what I said" versus the
+   council's change). Every
    claim a seat marked UNVERIFIABLE gets its own point ID (state: open
    verification — it counts as unresolved in the percentage); route it to
    the seat that can check it in the next packet, or record it in
@@ -267,10 +283,18 @@ PlanGenie overrides on top of the council skill's protocol:
    every verdict and rewritten before `FINAL REVIEW (resolved)`, per the
    council skill's Final review step 3. A resolution
    the user picks is applied and tagged `[CONFIRMED] (user approved, final
-   review item k)`; every item left open is recorded in PLAN.md's Remaining
-   Unknowns as `[OPEN]` — at ANY exit, an early stop included. The council
-   skill's `FINAL REVIEW (resolved)` stage separates "resolutions applied"
-   from "closing question pending". Then Step 3.
+   review item k)` — item numbers never restart within a council, so a
+   second final review continues from the first one's last number; every
+   item left open is recorded in PLAN.md's Remaining Unknowns as `[OPEN]`
+   — at ANY exit, an early stop included. The council skill's `FINAL
+   REVIEW (resolved)` stage separates "resolutions applied" from "closing
+   question pending". If the user answers the closing question with "run
+   more rounds", follow the council skill's reopen transition (Final
+   review step 4): the reopen ledger is written and `LEDGER:` re-pointed
+   before any packet, the items the user left open become carried again,
+   the `[OPEN]` lines they got in Remaining Unknowns stay until the point
+   is settled or judged again, and round numbering continues. Then, after
+   "accept", Step 3.
 6. **Pause and resume inside the council:** any interrupt (Esc, Ctrl+C,
    session end, a crash) is a pause — the council skill's "Stopping and
    pausing" section says what happens to seats in flight, and Step 0 or
@@ -280,18 +304,24 @@ PlanGenie overrides on top of the council skill's protocol:
    records the state of any Codex job, writes `STATUS: PAUSED (round N,
    <stage>)` and the `RESUME:` line to `planning/council_state/LOG.md`, and commits — and
    THEN PLANGENIE.md's pause procedure writes `CHECKPOINT.md` (`Phase: 4`,
-   `Council:` mirroring the LOG's STATUS) and prints the receipt. Resuming (Step 0, or `/council
+   `Council:` mirroring the LOG's STATUS) and prints the receipt — the
+   receipt names the directory `planning/` sits under (LOG.md's `PLANNING
+   DIR`, the directory PlanGenie was started in), never the git root, as
+   the place to start a fresh session. Resuming (Step 0, or `/council
    resume` from the same directory) reads `planning/council_state/LOG.md`, the
    merge file its `LEDGER:` line names (the newest one — the previous
-   round's until the current round is merged; the cumulative ledger of
+   round's until the current round is merged, or the reopen ledger after
+   "run more rounds"; the cumulative ledger of
    every point so far, and the only place a frozen point's arguments
    survive), the current round's packet(s) and whichever of its critiques
    are on disk (or `planning/packets/FINAL.md` during the final review) —
    nothing else — and continues at the recorded stage; keep
    `CHECKPOINT.md`'s `Ledger` line equal to LOG.md's `LEDGER:` at every
    mirror. Setup answers and final-review verdicts already logged are never
-   re-asked, and a round whose Codex job was lost is re-dispatched with its
-   saved packet.
+   re-asked; a round whose Codex job was lost is re-dispatched with its
+   saved packet, but only if that packet ends with `END OF PACKET` — a
+   half-written one is rewritten first; and reconciliation of an
+   interrupted apply compares only the current stage's own hash pair.
 
 ## Step 3: Finish
 

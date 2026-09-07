@@ -205,8 +205,9 @@ Blindspots named: <list, Phase 1 onward> | none
 Council: not started | setup (answers so far: stop rule …, limit …, seats …) |
       relay round N — awaiting seat 1 | relay round N — awaiting seat 2 |
       round N, <stage as planning/council_state/LOG.md records it> |
-      final review k of m (verdicts so far: …) | final review resolved
-      (closing question pending) | closed
+      final review cycle c, k of m (verdicts so far: …) | final review
+      resolved (closing question pending) | reopened after cycle c —
+      round N+1 next | closed
 Ledger: <path of the NEWEST merge file, e.g. planning/packets/round-3-merge.md
       — the cumulative point ledger a resume must load, whatever round is
       running> | none
@@ -277,18 +278,19 @@ block.
 3. Say, in one short paragraph: the idea, the phase and step, what is
    already done (one line), and the `Next` action. Set `Status: IN PROGRESS`.
 4. Do the `Next` action: re-ask the `Pending question` verbatim (with its
-   options) or the `Pending echo-check`, present open item k+1 of the final
-   review, ask for the missing critique, and so on. Never re-ask an answered
+   options) or the `Pending echo-check`, present the next unanswered open
+   item of the final review, ask for the missing critique, and so on. Never re-ask an answered
    question (a council setup answer already recorded included), never
    echo-check a fact already recorded, never repeat a finished phase, never
    re-present an open item whose verdict is recorded — and never apply an
-   edit twice: when the checkpoint says `round N, merged` or `final review m
-   of m`, the edits may already be partly in PLAN.md, so check each edit in
-   the merge file (or each chosen resolution) by its marker — the
-   `council-agreed: <ids>` marker (inside a `[CANDIDATE]` tag or a
+   edit twice: when the checkpoint says `round N, merged` or `final review
+   cycle c, m of m`, the edits may already be partly in PLAN.md, so check
+   each edit in the merge file (or each chosen resolution) by its marker
+   — the `council-agreed: <ids>` marker (inside a `[CANDIDATE]` tag or a
    `[CONFIRMED] (verified: …)` tag), the `(user approved, final review
-   item k)` tag, or the absence of text it removes — and apply only the
-   ones not there. `Phase: 4` with `Council: closed` means the debate
+   item k)` tag, or the absence of text it removes — AND by the edit's own
+   text next to that marker (a marker alone may be left over from an
+   earlier council on the same plan), and apply only the ones not there. `Phase: 4` with `Council: closed` means the debate
    finished but Phase 5 never ran: go straight to Phase 5 — never start a
    new council and never archive the finished one.
 5. `Status: FINISHED` means the plan was completed: say so, with the date and
@@ -345,7 +347,10 @@ the user immediately answers it.
    appear in the plan (tagged with its `Qn`) or in Remaining Unknowns — an
    answer that appears nowhere is a lost requirement; put it back. Do both
    BEFORE showing the draft, and repeat both before Phase 5 prints the
-   final plan.
+   final plan — and in the Phase 5 repeat, also confirm that no
+   council-agreed line contradicts a `[USER] (Qn)` or `(user approved)`
+   line: a contradiction the user has not judged is a Phase 4 user-decision
+   item that was skipped, not something to reconcile silently.
 3. **Draft the plan** with the decisions that are hardest to change later
    first (data model, interfaces, user-facing flows); mechanical detail last.
    At minimum, include these sections, so the implementer inherits a
@@ -474,7 +479,9 @@ verify or suspect is made up. For any claim you cannot check with tools you
 actually have, write UNVERIFIABLE — never guess and never simulate a
 verification.
 Reply as a numbered list of major concerns, then minor concerns, then
-concrete refinements — most important first. Be specific and brief.
+concrete refinements — most important first. Be specific and brief. If you
+have no concerns at all, say so explicitly. End your reply with the line
+"END OF CRITIQUE" — a reply without it is treated as incomplete.
 --- PLAN BEGINS ---
 [paste the full current plan here, including its tags]
 --- PLAN ENDS ---
@@ -507,12 +514,21 @@ unchanged, so without this list it comes back as a new point and reopens
 a settled dispute. Round 1
 critiques stay free-form; verdicts apply only to cross-examination rounds.
 
-**As each critique arrives** (pasted back or returned by a subagent): if you
-can create files, save it at once to `planning/packets/round-N-critique-<seat>.md`,
+**As each critique arrives** (pasted back or returned by a subagent): first
+check it is complete — it ends with `END OF CRITIQUE`, it does not say the
+packet was truncated or partial, and it contains either numbered points or
+an explicit "no concerns". A reply that fails this is NOT a critique: say
+so, re-check the saved packet file (its last line must be `END COUNCIL
+REVIEW PACKET`; rewrite it if not), and ask the user to obtain that seat's
+review again with the same packet — once; if it fails again, the
+seat-missing rule above applies. Never count a "packet truncated" reply
+as a clean review. Then, if you can create files, save the complete
+critique at once to `planning/packets/round-N-critique-<seat>.md`,
 and update CHECKPOINT.md's `Council` line (`awaiting seat 2`, then `round N,
 collected`). A pause between the two seats then resumes by asking only for
 the critique still missing; a critique that is on disk is never requested or
-re-run again.
+re-run again, and a packet file is reused on resume only if it ends with
+its END line.
 
 **When both critiques are back, merge, tally and apply — the seats decide,
 not the user:**
@@ -558,18 +574,32 @@ not the user:**
   settled only when a seat verifies or refutes it with a named tool and
   source (the resulting edit is applied like an agreed one); otherwise it
   reaches the final review as an open item.
+- **The council never overrides the user's own words.** Before listing an
+  agreed edit as "to apply", look at the plan lines it changes or removes.
+  If any of them is a `[USER] (Qn)` line or a `[CONFIRMED] (user approved,
+  …)` line, the point's state becomes **user decision** instead of agreed:
+  nothing is applied, the edit and the conflicting line are recorded
+  together in the ledger, the point is never sent back to the seats, and
+  it reaches the final review as an open item whose options are "keep what
+  I said" and the council's change. An edit that only adds content next to
+  a user line without changing its meaning is applied normally. A user's
+  answer can be wrong — but only the user may change it (Hard Rule 1).
 - **Agreement percentage** (cumulative over every point raised so far):
-  settled ÷ (settled + deadlocked + still carried + open verification),
-  where settled = agreed or withdrawn — every other state is unresolved
-  and counts against the percentage, an unchecked claim included. It
+  settled ÷ (settled + deadlocked + still carried + open verification +
+  user decision), where settled = agreed or withdrawn (and, after a final
+  review, applied or rejected by the user) — every other state is
+  unresolved and counts against the percentage, an unchecked claim and a
+  user-decision point included. It
   measures how much of the debate is settled — ninety-five
   trivial resolutions and five serious open concerns still score 95% —
   never how correct the plan is; present it as progress, and say so
   whenever you show it. With files, write `planning/packets/round-N-merge.md`
   as the **cumulative ledger** — every point raised in ANY round so far, by
   ID, with its state (agreed / withdrawn / carried / deadlocked / open
-  verification), the text of each carried or deadlocked point with both
-  seats' positions, the percentage, and the exact edits to apply this round
+  verification / user decision), the text of each carried, deadlocked or
+  user-decision point with both seats' positions, the percentage, and the
+  exact edits to apply this round, each with its full text and the marker
+  that shows it done
   — BEFORE touching the plan (CHECKPOINT.md `Council: round N, merged`),
   and put its path in CHECKPOINT.md's `Ledger` line in the same write.
   Because it is cumulative, a resume needs only the newest merge file —
@@ -599,26 +629,33 @@ not the user:**
   — becomes a final-review open item; nothing is dropped.
 
 **Final review — the only place the user judges.** With files, write
-`planning/packets/FINAL.md` first (CHECKPOINT.md `Council: final review 0 of m`):
-why the council stopped, the agreement percentage with its caveat (progress,
-not correctness), the applied refinements (one line each, with IDs), and
-the numbered **open items** — deadlocked points with each seat's position
-in plain language, agreed concerns whose fixes were never reconciled (each
-fix an option), UNVERIFIABLE claims nobody could check, and EVERY point
-still carried when the council stopped — major, minor and refinement
-alike, single-seat points included (related minor points may share one
-question, but each ID keeps its own disposition). **No point disappears:**
+`planning/packets/FINAL.md` first (CHECKPOINT.md `Council: final review
+cycle c, 0 of m` — c is 1 the first time and counts up with every "run more
+rounds"): why the council stopped, the agreement percentage with its caveat
+(progress, not correctness), the applied refinements (one line each, with
+IDs), and the numbered **open items** — deadlocked points with each seat's
+position in plain language, agreed concerns whose fixes were never
+reconciled (each fix an option), UNVERIFIABLE claims nobody could check,
+user-decision points ("keep what I said" versus the council's change), and
+EVERY point still carried when the council stopped — major, minor and
+refinement alike, single-seat points included (related minor points may
+share one question, but each ID keeps its own disposition). **Item numbers
+never restart within a council:** cycle 1 numbers its items 1..m, and a
+later cycle continues from the previous cycle's last number, so `final
+review item k` is unique for the whole council and an old tag can never
+make a new resolution look applied. **No point disappears:**
 every ID raised in any round ends in exactly one state — applied,
 withdrawn, rejected (the user chose "drop it"), or open — and FINAL.md ends
 with a ledger listing every ID with that state. Show the user the full
 current plan and that summary in plain words. Then ask ONLY the open items,
 one at a time (Hard Rule 4), each with the seats' positions as options plus
 "leave open" (and "drop it" where that makes sense); record each verdict as
-it is given — in the checkpoint (`Council: final review k of m`) AND in
-FINAL.md, where the item's IDs move from open to their verdict (`<the
-option chosen> — to apply`, `rejected`, or `open — user's choice`) — so a
-pause resumes at item k+1 without re-asking and FINAL.md is never behind
-the verdicts. Apply the chosen resolutions after the last verdict,
+it is given — in the checkpoint (`Council: final review cycle c, k of m`)
+AND in FINAL.md, where the item's IDs move from open to their verdict
+(`<the option chosen> — to apply`, `rejected`, or `open — user's choice`)
+— so a pause resumes at the next unanswered item without re-asking and
+FINAL.md is never behind the verdicts. Apply the chosen resolutions after
+the last verdict,
 each tagged `[CONFIRMED] (user approved, final review item k)`; every item
 left open goes to Remaining Unknowns as `[OPEN]` — at ANY exit, an early
 stop included. Then rewrite FINAL.md's closing ledger so every ID shows
@@ -628,8 +665,22 @@ resolution applied for each user-judged item, and only then set
 never re-applies a resolution; a ledger with any ID still "to apply" or
 awaiting a verdict is not resolved. Finally one closing
 question: accept the plan as final, or run more rounds (the user says how
-many; the same stop rule applies; the open items go back into the debate).
-If there were no open items, this is the only question.
+many). If there were no open items, this is the only question. **"More
+rounds" is a defined reopen, done before any packet is written:** (1) write
+`planning/packets/reopen-<c>-ledger.md` in the merge-file format — every
+ID with its post-verdict state: items the user resolved are `applied` (or
+`rejected`) and count as settled from now on; every item the user left
+open — deadlocked, unreconciled, open verification, single-seat or user
+decision alike — is reset to **carried** with its full history of
+positions kept, because the user's choice to send it back is what lifts
+the freeze (it goes to BOTH seats in the next packet, each side's
+positions listed, and a second deadlock re-freezes it for the next final
+review); (2) point CHECKPOINT.md's `Ledger` line at that file and set
+`Council: reopened after cycle c — round N+1 next`, with the round limit
+raised to N+n; (3) continue the rounds at round N+1 — round numbers and
+point IDs never restart, the stop rule is unchanged, and the next final
+review is cycle c+1 with item numbers continuing. In a file-less chat the
+resume block carries the reopen ledger in place of the last merge.
 
 If the user cannot or will not consult another AI and no harness council is
 available, run a clearly labeled self-review against the same five critique
