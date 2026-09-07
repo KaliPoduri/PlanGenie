@@ -331,3 +331,102 @@ The main product gaps are:
 Verification this session confirmed **six core phases, matching v7 markers across all four adapters/councils, all eight advertised product files present, and valid JSON metadata**. Both working-tree and staged `git diff --exit-code` checks returned **0**; the pre-existing untracked `.claude/settings.local.json` remained.
 
 **No live end-to-end workflow was run, and no fixes were applied.** CodeRabbit's CLI was unavailable; this report comes from direct inspection and independent agent reviews.
+
+# REVIEW ITERATION 4
+
+Fourth independent read-only review by Codex (GPT, via the Codex plugin),
+run on 2026-09-07 against commit `98e2dc5` on `main` (council protocol v8,
+after the fixes for REVIEW ITERATION 3 were merged). Same task as before:
+read `README.md`, parse every file in the repo, check that the codebase
+matches what the README says, and give an independent review of the idea
+and the tool for loopholes, bugs and misses. The text below is Codex's
+answer, unedited apart from making its file links repo-relative.
+**The README broadly matches the intended workflow, but the current tool does not fully support its promises of exact recovery and reliable council completion.** The interview and provenance design are useful; the remaining weaknesses are mainly in interrupted reviews, fallback transitions, and repeated review cycles.
+
+I reviewed all **16 working-tree files**, including hidden adapters, reviewer definitions, metadata, tracking files, and previous reviews, plus the active Git hook. Two independent agents reviewed the Claude and Copilot implementations. Git’s internal history and object database were excluded. **No files were created or edited.**
+
+This is a prompt-based product. The findings below are defects or ambiguities in its instructions; live behavior is **not yet verified**.
+
+| README claim | Assessment |
+|---|---|
+| Intake, blindspots, adaptive interview, “wrap up” | Consistently specified |
+| Provenance tags, answer references, explicit unknowns | Specified; enforcement depends on model compliance |
+| Two reviewers, configurable rounds, final user decisions | Implemented in prompts, with lifecycle gaps |
+| Stop anywhere and resume exactly | Overstated; concrete recovery defects remain |
+| Every concern retains a disposition | Required, but interrupted persistence can undermine it |
+| Ordered build steps, dependencies, acceptance criteria | Required by the current core |
+| Claude/Copilot installation and dependencies | Mostly aligned; personal-copy precedence remains problematic |
+
+The most significant findings are:
+
+1. **High — Claude’s pause path can mark an incomplete round as collected.**
+
+   The pause procedure says that collecting a completed Codex result makes the pause land at `collected`. However, Esc may have killed the Claude reviewer before its critique was saved. Elsewhere, `collected` means **both** critiques exist, and resuming that state immediately proceeds to merge.
+
+   **Trigger:** Codex finishes → Claude is still working → Esc → type “pause” → only Codex’s critique is saved → resume proceeds to merge.
+
+   **Recommendation:** Advance to `collected` only after validating both critiques, or recording the user’s explicit single-seat choice. [Pause procedure](.claude/skills/council/SKILL.md:151), [state definition](.claude/skills/council/SKILL.md:57).
+
+2. **High — Switching from automated review to relay mode lacks a durable transition.**
+
+   After Codex fails, the Claude adapter offers relay mode. By then, automated council state and temporary reviewer settings may already exist. The fallback does not specify how to transfer that state, record the new mode, or restore the settings. On a fresh-session resume, the adapter prioritizes the still-live automated log.
+
+   Consequently, a user who chose relay can be routed back into automated review.
+
+   **Recommendation:** Define a persisted handoff that transfers the ledger and pending seats, handles outstanding jobs, and restores settings. [Fallback](.claude/skills/plangenie/SKILL.md:214), [resume precedence](.claude/skills/plangenie/SKILL.md:132).
+
+3. **Medium — “Run more rounds” introduces ambiguous voting on reopened points.**
+
+   Reopened disagreements go to **both** reviewers. The ordinary tallying rule assumes a point is going to the other reviewer and says `AGREE` means apply. There is no explicit rule for receiving `AGREE` from one reviewer and `REBUT` from the other on the same reopened point.
+
+   **Recommendation:** Require both current reviewers to agree on the same proposed change before applying a reopened point. [Reopen rule](PLANGENIE.md:669), [ordinary tallying](PLANGENIE.md:553).
+
+4. **Medium — Final-review item numbers conflict with cycle progress counters.**
+
+   Item numbers continue across cycles, but `FINAL REVIEW(k/m)` represents the number answered within the current cycle. The instructions reuse `k` for both purposes.
+
+   For example, after three items in cycle one, cycle two’s two items are numbered **4 and 5**. Literal application yields `4/2` and `5/2`, while the apply/resume transition expects `2/2`.
+
+   **Recommendation:** Separate permanent `item_id` from the current cycle’s `answered_count`. This ambiguity appears in both automated councils. [Copilot verdict handling](.github/prompts/council.prompt.md:440), [Claude equivalent](.claude/skills/council/SKILL.md:129).
+
+5. **Medium — Saved critiques are trusted by existence during recovery.**
+
+   Copilot validates incoming critique completeness, but resume explicitly collects only missing critique files and prohibits requesting an existing one again. It does not revalidate the saved file.
+
+   Under the protocol’s stated interrupted-write scenario, a partial critique can therefore count as present and prevent recovery of its missing concerns. Packets already receive an explicit completeness check; critiques need the same treatment.
+
+   **Recommendation:** Validate persisted critiques before counting a seat as complete. [Resume rule](.github/prompts/council.prompt.md:59), [collection and validation](.github/prompts/council.prompt.md:283).
+
+6. **Medium — Cross-tool resume is claimed without host-specific cleanup.**
+
+   The Copilot council says a Claude council can resume in Copilot. Claude state can contain running Codex jobs and temporarily modified Claude agent settings. Copilot’s resume and close procedures neither audit those jobs nor restore those settings.
+
+   **Recommendation:** Record the originating tool and implement migration, or restrict cross-tool continuation to explicitly supported boundaries. [Compatibility claim](.github/prompts/council.prompt.md:18), [Copilot close](.github/prompts/council.prompt.md:500), [Claude cleanup](.claude/skills/council/SKILL.md:134).
+
+7. **Medium — Reopened councils reference a ledger omitted from checkpoint commits.**
+
+   Reopening creates `reopen-<c>-ledger.md` and makes it authoritative. The explicit commit paths include `round-N-*.md` and later `FINAL.md`, but omit the reopen ledger.
+
+   Same-disk recovery can still work. Restoring a checkpoint commit, however, can produce a log pointing to a missing file.
+
+   **Recommendation:** Include the authoritative ledger in each checkpoint’s staged paths. [Ledger creation](.claude/skills/council/SKILL.md:131), [commit paths](.claude/skills/plangenie/SKILL.md:264).
+
+8. **Low — Running the repository can silently select an older personal core.**
+
+   The Claude adapter explicitly loads the personal `PLANGENIE.md` before the repository copy. This can combine a stale personal core with current project adapters. The core has no corresponding compatibility check.
+
+   **Recommendation:** Resolve the core relative to the loaded installation, with an explicit version check. [Core lookup](.claude/skills/plangenie/SKILL.md:59).
+
+**My independent assessment of the idea:** its strongest value is converting vague wishes into traceable requirements. Teaching blindspots, recording exact answers, distinguishing approval from verification, and requiring acceptance criteria are worthwhile features.
+
+The council’s additional value remains unmeasured. Different models can share the same mistaken premise, and negotiated agreement can suppress a valid objection. The README correctly says agreement measures debate progress, not correctness.
+
+Three product priorities follow:
+
+- **Make the promise measurable.** “Zero silent assumptions” is a design objective, not an established guarantee.
+- **Evaluate the cost of the workflow.** Compare the same interview plus one independent review against the full council. Measure missed requirements, unsupported claims, implementation clarifications, user effort, elapsed time, and cost.
+- **Test the current protocol before expanding it.** Retain repeatable cases for interrupted collection, partial writes, relay fallback, reopened disagreements, changed answers, and implementation handoff. The tracking files explicitly say v8 is not field-tested. [Recorded status](next_session.md:6).
+
+The README’s updated Copilot restrictions match current official documentation: prompt files exclude Agent Host agents, and subagents cannot exceed their parent’s model cost tier. [Prompt-file documentation](https://code.visualstudio.com/docs/agent-customization/prompt-files), [subagent documentation](https://code.visualstudio.com/docs/agents/run/subagents).
+
+Verification this session confirmed **all eight advertised product files, six core phases, matching v8 markers across four adapters/councils, and valid JSON metadata**. Working-tree and staged diff checks both returned **0**; the pre-existing untracked `.claude/settings.local.json` remained. **No live end-to-end workflow was run, and no fixes were applied.**

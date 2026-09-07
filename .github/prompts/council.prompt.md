@@ -15,10 +15,14 @@ chat's Stop button (see Stopping and pausing). At the
 end the user sees the final document plus every open item and decides those
 only. This runs on its own — it does not need PlanGenie.
 
-`council-protocol: v8` (Copilot adapter, 2026-09-07). Same protocol as the
+`council-protocol: v9` (Copilot adapter, 2026-09-07). Same protocol as the
 Claude Code council skill: same packet, verdict grammar, tally rules, STATUS
 grammar and file layout, so a council started in one tool can be resumed in
-the other. The agreement percentage measures how much of the debate is
+the other — with one gate: a Claude Code council's LOG.md may record Codex
+background jobs (`JOB ROOT:`, job ids without a terminal result) and
+Claude agent-file pins (Setup values without a restore line) that only
+Claude Code can cancel or restore; Step 0 checks for both before
+continuing such a council here. The agreement percentage measures how much of the debate is
 settled, never how correct the document is; say so whenever you show it.
 
 ## Inputs
@@ -29,11 +33,18 @@ settled, never how correct the document is; say so whenever you show it.
 ## Step 0 — resume check (ALWAYS first, on every invocation)
 
 If `planning/council_state/LOG.md` exists in the workspace and its LAST `STATUS:` line is
-not `CLOSED` or `ABANDONED`, this is a RESUME, not a new council — whether
+not `CLOSED`, `ABANDONED` or `HANDED OFF` (the last is a Claude Code council
+handed to PlanGenie's relay mode — its debate continues through
+`/plangenie` there, never here), this is a RESUME, not a new council — whether
 the user ran `/council` again, or typed `resume` / `continue` in this chat
 after a pause or a Stop:
 
-1. Read only `planning/council_state/LOG.md` (the setup answers live there — never re-ask
+1. **Claude Code gate first:** if LOG.md records a Codex job id without a
+   terminal result, or agent-file pins (`model:`/`effort:` previous values)
+   without a restore line, this council must be resumed in Claude Code
+   (`/council resume` there, or its abandon procedure): say so and stop —
+   never continue it here, and never write `ABANDONED` over it from this
+   tool. Otherwise read only `planning/council_state/LOG.md` (the setup answers live there — never re-ask
    them), the document under review (current version on disk), ALWAYS the
    merge file LOG.md's `LEDGER:` line names (the newest one — the previous
    round's until the current round is merged; it is the cumulative ledger
@@ -59,14 +70,18 @@ after a pause or a Stop:
 3. Continue at the recorded stage per the STATUS table below. Never redo a
    stage LOG.md records as done; never re-ask a logged verdict or a logged
    setup answer (at `round 1, setup` with `SETUP: k/5 answered`, ask only
-   the missing questions); a critique file that is on disk is never
-   requested or re-run again; an edit already in the document is never
+   the missing questions); a critique file that is on disk AND ends with
+   `END OF CRITIQUE` is never requested or re-run again (one without that
+   last line is an interrupted write: rename it `<name>.partial`, log it,
+   and collect that seat again — presence alone proves nothing, exactly as
+   for a packet); an edit already in the document is never
    applied again (see the reconciliation rule in Step 2).
 4. Append `- RESUMED <ISO timestamp> at <stage>` to LOG.md (and the same
    line to `planning/status/progress.md`) and set `STATUS:` back to the
    `IN PROGRESS` / `FINAL REVIEW` form of that stage.
 
-If the last STATUS is `CLOSED` / `ABANDONED`, ask the user whether to move the
+If the last STATUS is `CLOSED` / `ABANDONED` (never `HANDED OFF` — that debate
+is still live in relay mode), ask the user whether to move the
 old debate files to `planning/packets/archive-<date>/` and its LOG.md to
 `planning/council_state/archive-<date>/`, then start a new council on the
 document, or stop.
@@ -178,11 +193,11 @@ the next action, never after.
 | STATUS | Meaning | Resume action |
 |---|---|---|
 | `IN PROGRESS (round N, setup)` | packet(s) being written; in round 1, `SETUP: k/5 answered` says whether setup is complete; after a `REOPENED:` line, round N is the first reopened round | ask any unanswered setup question; reuse an existing packet file for the round ONLY if its last line is `END COUNCIL REVIEW PACKET` and it embeds the current document, else rewrite it; then dispatch |
-| `IN PROGRESS (round N, dispatched)` | seats out / user couriering | collect only the seats whose critique file is missing |
+| `IN PROGRESS (round N, dispatched)` | seats out / user couriering | collect only the seats whose critique file is missing or incomplete (no `END OF CRITIQUE` last line — Step 0) |
 | `IN PROGRESS (round N, collected)` | both critiques saved | merge and tally |
 | `IN PROGRESS (round N, merged)` | merge file (cumulative ledger) written, `LEDGER:` pointed at it, `DOC BEFORE APPLY (round N): <hash>` logged — all in the same write; edits may be partly applied if a Stop hit mid-apply | reconcile against round N's own hash pair, then apply only the edits not yet in the document |
 | `IN PROGRESS (round N, applied)` | agreed edits applied, `DOC AFTER APPLY (round N): <hash>` logged, round checkpointed | stop-rule check → next round or final review |
-| `FINAL REVIEW (k/m)` | `planning/packets/FINAL.md` written for cycle c (1 the first time, 2 after "more rounds", …); k of this cycle's m verdicts logged; at `m/m` — set in the SAME write as `DOC BEFORE APPLY (final review c): <hash>` — the resolutions are being applied | present the next unanswered item; at `m/m` reconcile against cycle c's own hash pair, then apply the missing resolutions |
+| `FINAL REVIEW (k/m)` | `planning/packets/FINAL.md` written for cycle c (1 the first time, 2 after "more rounds", …); k of this cycle's m verdicts logged (a count, never an item number — item numbers continue across cycles, so a two-item cycle 2 holding items 4 and 5 goes 1/2 then 2/2); at `m/m` — set in the SAME write as `DOC BEFORE APPLY (final review c): <hash>` — the resolutions are being applied | present the next unanswered item; at `m/m` reconcile against cycle c's own hash pair, then apply the missing resolutions |
 | `FINAL REVIEW (resolved)` | every verdict logged and every chosen resolution applied, `DOC AFTER APPLY (final review c)` logged; closing question pending | ask the closing question |
 | `PAUSED (round N, <stage>)` / `PAUSED (final review k/m)` / `PAUSED (final review resolved)` | user paused; `RESUME:` line says the next action | same as the stage named |
 | `CLOSED` / `ABANDONED` | finished | nothing |
@@ -402,7 +417,9 @@ git repository — stage and commit by explicit pathspec only:
 `<document> planning/council_state/LOG.md planning/packets/round-N-*.md planning/status/next_session.md planning/status/progress.md`
 (the `git add` is required: this round's packet and critique files are new
 and a pathspec commit of a file git does not know fails; never a plain
-`git commit` or `commit -a`). Print a one-paragraph round summary for the
+`git commit` or `commit -a`; add `planning/packets/reopen-*-ledger.md`
+whenever such a file exists — a pathspec that matches nothing makes
+`git add` fail). Print a one-paragraph round summary for the
 user (agreed / carried / deadlocked counts, the percentage with its caveat,
 what happens next) — a status line, not a question.
 
@@ -451,10 +468,13 @@ subagent) or hand out the next relay instructions.
    plain language.
 3. Ask ONLY the open items, one at a time, each with the seats' positions as
    options plus "leave open" (and "drop it" where that makes sense). After
-   EACH answer append `- FINAL item k: <verdict> — <title>` to LOG.md,
+   EACH answer append `- FINAL item i: <verdict> — <title>` to LOG.md (i =
+   the item's own number, unique across cycles),
    update that item's ID lines in FINAL.md's ledger from open to the
    verdict (`<option chosen> — to apply`, `rejected`, or `open — user's
-   choice`), and set `STATUS: FINAL REVIEW (k/m)` before the next —
+   choice`), and set `STATUS: FINAL REVIEW (k/m)` before the next (k = how
+   many of this cycle's m verdicts are logged; from the second cycle on k
+   and i differ — never write an item number into the counter) —
    FINAL.md is never behind the verdicts (rewriting it is safe to repeat).
    The write that logs the LAST verdict sets `STATUS: FINAL REVIEW (m/m)`
    AND logs `DOC BEFORE APPLY (final review c): <hash>` together — one
@@ -487,13 +507,27 @@ subagent) or hand out the next relay instructions.
       positions kept: the user's choice to send it back is what lifts the
       freeze, so it is carried to BOTH seats in the next packet (each
       side's positions listed), and a second deadlock re-freezes it for
-      the next final review.
+      the next final review. **Tally of a reopened point** (the one case
+      where a point sits with BOTH seats at once): the packet asks each
+      seat for a verdict on the other side's position plus the ONE concrete
+      edit it would accept. It is **agreed** only when both seats name the
+      same concrete edit (AGREE from both on one position, or two AGREE
+      WITH CHANGE naming the same fix); an AGREE WITH CHANGE naming a fix
+      the other seat did not name makes that fix a remedy point carried to
+      the other seat under the ordinary rule; any REBUT — one AGREE beside
+      one REBUT included — re-freezes it as **deadlocked** at once, both
+      new positions recorded for the next final review: a reopened point
+      has had its carry-back and gets no second one.
    2. In ONE write: `LEDGER: planning/packets/reopen-<c>-ledger.md`,
       `REOPENED: cycle <c> — <n> more rounds (rounds N+1..N+n), round
       limit now <N+n>`, and `STATUS: IN PROGRESS (round N+1, setup)`.
       Round numbering continues (never a second "round 1"), so point IDs
       stay unique; the stop rule is unchanged; the next final review is
-      cycle c+1 with item numbers continuing.
+      cycle c+1 with item numbers continuing. Then stage and commit by
+      pathspec as Step 3.4 does, with `planning/packets/reopen-<c>-ledger.md`
+      and `planning/packets/FINAL.md` in the list — the reopen ledger is
+      what `LEDGER:` names until round N+1 is merged, and the round
+      pathspec (`round-N-*.md`) does not match it.
    3. Re-enter Step 3 at round N+1 with fresh packets — the reopened
       points are the carried list, the "already settled or frozen" list is
       everything else. Seat agent files stay until the council closes.

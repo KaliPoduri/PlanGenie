@@ -57,7 +57,10 @@ user they should have typed `pause` first.
 
 Find `PLANGENIE.md`, in this order: `.github/prompts/PLANGENIE.md`; the
 workspace root; a file the user attached. If it is in none of these, ask
-where it is. Do NOT reconstruct it from memory.
+where it is. Do NOT reconstruct it from memory. Confirm the loaded copy's
+marker line reads `plangenie-core: v1` (this adapter was written against
+it); a different or missing marker means the core or the adapter needs
+review — say so and stop.
 
 Before the first write, state the absolute path of the `planning/` folder
 you are about to write into (created under the workspace root if missing).
@@ -93,7 +96,7 @@ with these Copilot specifics:
 **Mechanics come from the `/council` prompt; content comes from
 PLANGENIE.md.** Read `.github/prompts/council.prompt.md` and follow its
 Steps 0–4 and its "Stopping and pausing" section exactly. This adapter was
-written against that file's marker `council-protocol: v8`; if it shows a
+written against that file's marker `council-protocol: v9`; if it shows a
 different version (or none), stop and say the adapter needs review. If the
 file is missing, say so and run PLANGENIE.md's relay mode instead — do not
 improvise council mechanics.
@@ -101,7 +104,9 @@ improvise council mechanics.
 **Preflight, in this order:**
 
 1. **Resume check (classify only):** if `planning/council_state/LOG.md` exists and its last
-   `STATUS:` line is not `CLOSED` or `ABANDONED`, this is an interrupted or
+   `STATUS:` line is not `CLOSED`, `ABANDONED` or `HANDED OFF` (a Claude Code
+   council handed to relay mode — resume it in Claude Code with `/plangenie`,
+   not here), this is an interrupted or
    paused council — follow the `/council` prompt's Step 0. A finished round
    is NOT a finished council. If its last `STATUS:` is `CLOSED` while
    `CHECKPOINT.md` still says `Phase: 4` (not `FINISHED`), the council
@@ -163,7 +168,8 @@ improvise council mechanics.
    `git commit -m "council: round N" -- <the same paths>`, with the paths
    `planning/PLAN.md planning/UNKNOWNS.md planning/CHECKPOINT.md planning/council_state/LOG.md planning/packets/round-N-*.md planning/status/next_session.md planning/status/progress.md`
    (the `git add` is what makes the round's new packet and critique files
-   known to git).
+   known to git; add `planning/packets/reopen-*-ledger.md` whenever such a
+   file exists — a pathspec that matches nothing makes `git add` fail).
 5. **CHECKPOINT.md mirrors LOG.md:** at every council stage change, rewrite
    `CHECKPOINT.md` with `Phase: 4`, a `Council:` line equal to LOG.md's
    current `STATUS:`, and a `Ledger:` line equal to its `LEDGER:` (the
