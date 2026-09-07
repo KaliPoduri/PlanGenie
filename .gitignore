@@ -1,5 +1,6 @@
 # Claude Code background-job worktrees
 .claude/worktrees/
 
-# Scratch record of the last /gpt Codex launch
+# Scratch files of the /gpt Codex command: last-launch record and saved Codex outputs
 .gpt-last-job.json
+.gpt-outputs/
