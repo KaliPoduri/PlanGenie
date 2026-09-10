@@ -44,7 +44,17 @@ resuming — never move them silently.
   at the start, or the handoff in Step 2's preflight step 3), LOG.md is
   `HANDED OFF (relay, …)` or absent and is not consulted: follow
   PLANGENIE.md's relay mode from the checkpoint and its `Ledger:` file and
-  skip Step 2's override entirely.
+  skip Step 2's override entirely. **Interrupted handoff repair — check
+  this BEFORE choosing between the automated and relay branches:** if
+  `planning/council_state/LOG.md` exists and its last `STATUS:` is `HANDED
+  OFF (relay, …)` while the checkpoint's `Council:` line does NOT yet say
+  `relay`, the stop hit between the council skill's handoff write and this
+  file's. Rebuild the relay state from LOG.md's `HANDED OFF:` line — set
+  `Council:` to `relay round N — awaiting seat <its "next seat">` and
+  `Ledger:` to the ledger path it names — write CHECKPOINT.md, then take
+  the relay branch. Never take the automated branch on a `HANDED OFF`
+  LOG.md (the council skill refuses to resume it and would send the user
+  back here).
   **`Phase: 4` with LOG.md's last `STATUS:` `CLOSED`** (the checkpoint's
   `Council:` line says `closed`) means the council finished but Phase 5
   never ran — the stop came between the council's close and the final
@@ -126,7 +136,7 @@ this order and say which copy you are using:
 The council skill text is authoritative for mechanics EXCEPT where the
 numbered overrides below contradict it — the overrides win. Do not
 paraphrase the mechanics here or from memory: read them. This adapter was
-written against the council skill's marker line `council-protocol: v9`; if
+written against the council skill's marker line `council-protocol: v10`; if
 that file shows a different version (or no marker), stop and tell the user
 the adapter needs review before running a council.
 
@@ -199,7 +209,11 @@ council skill's step-3 fallback (Claude-only, or relay) applies.
    deletion at `planning/packets/round-1-packet.md` does not violate the
    archive-*/ exclusion). Then write `planning/council_state/LOG.md` from the
    answers recorded in `CHECKPOINT.md` (the council skill's Setup step 3 —
-   it records the agent files' current `model:`/`effort:` values) and only
+   it records the agent files' current `model:`/`effort:` values), with
+   its `CALLER:` line set to `CALLER: plangenie — resume with /plangenie
+   resume; adapter <absolute path of this SKILL.md>` (so a bare `/council
+   resume` on this council routes back through this adapter instead of
+   dropping CHECKPOINT.md, UNKNOWNS.md and Phase 5), and only
    then pin the agent files (its Setup step 4). If the project root is not a
    git repository, AskUserQuestion —
    `git init` it, or run with file-only checkpoints (still write
@@ -225,7 +239,18 @@ PlanGenie overrides on top of the council skill's protocol:
    (empty result or error confirmed via `status <job-id>`; a dead poll loop
    is NOT an empty result): AskUserQuestion — continue with a Claude-only
    council, or switch to PLANGENIE.md relay mode. Say plainly that
-   Claude-only loses the cross-model check. **Switching to relay is a
+   Claude-only loses the cross-model check. **Two situations, two paths.**
+   (a) The failure is found BEFORE `planning/council_state/LOG.md` exists —
+   preflight step 2's companion smoke test fails, or the plugin is not
+   installed: no council has started, so there is nothing to hand off. Ask
+   the question then; "relay" enters PLANGENIE.md relay mode directly
+   (`Council: relay round 1 — awaiting seat 1` in CHECKPOINT.md, no LOG.md
+   is ever written, no pins are touched); "Claude-only" continues the
+   preflight and writes LOG.md in step 4 with `SEATS: claude, claude-2`.
+   (b) The failure hits an initialised council (LOG.md exists — a dispatch
+   or job failed): "Claude-only" is the council skill's fallback (its
+   `WAIVED` / `SEATS` lines are logged the moment the user answers), and
+   **switching to relay is a
    defined handoff, done before anything else:** run the council skill's
    "Handing a council to relay mode" (cancel the Codex job(s), restore the
    agent pins, `STATUS: HANDED OFF (relay, round N, <stage>)`), then set
@@ -305,7 +330,8 @@ PlanGenie overrides on top of the council skill's protocol:
    every verdict and rewritten before `FINAL REVIEW (resolved)`, per the
    council skill's Final review step 3. A resolution
    the user picks is applied and tagged `[CONFIRMED] (user approved, final
-   review item k)` — item numbers never restart within a council, so a
+   review item i)` — `i` is the item's own number, never the council
+   skill's `k/m` counter; item numbers never restart within a council, so a
    second final review continues from the first one's last number; every
    item left open is recorded in PLAN.md's Remaining Unknowns as `[OPEN]`
    — at ANY exit, an early stop included. The council skill's `FINAL
@@ -341,7 +367,8 @@ PlanGenie overrides on top of the council skill's protocol:
    `CHECKPOINT.md`'s `Ledger` line equal to LOG.md's `LEDGER:` at every
    mirror. Setup answers and final-review verdicts already logged are never
    re-asked; a round whose Codex job was lost is re-dispatched with its
-   saved packet, but only if that packet ends with `END OF PACKET` — a
+   saved packet, but only if that packet ends with `END COUNCIL REVIEW
+   PACKET` — a
    half-written one is rewritten first; and reconciliation of an
    interrupted apply compares only the current stage's own hash pair.
 

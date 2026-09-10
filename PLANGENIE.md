@@ -660,7 +660,7 @@ cycles) AND in FINAL.md, where the item's IDs move from open to their verdict
 — so a pause resumes at the next unanswered item without re-asking and
 FINAL.md is never behind the verdicts. Apply the chosen resolutions after
 the last verdict,
-each tagged `[CONFIRMED] (user approved, final review item k)`; every item
+each tagged `[CONFIRMED] (user approved, final review item i)` — i is the item's own number, never a per-cycle count; every item
 left open goes to Remaining Unknowns as `[OPEN]` — at ANY exit, an early
 stop included. Then rewrite FINAL.md's closing ledger so every ID shows
 its final state — applied, withdrawn, rejected or open — with the
