@@ -134,7 +134,7 @@ in this order and say which copy you are using:
 1. the copy bundled with the project: `.claude/skills/council/SKILL.md`
    under the project root (it ships in this repo, so a clone has it);
 2. the personal install: `~/.claude/skills/council/SKILL.md`.
-This adapter was written against the marker `council-protocol: v11`; a
+This adapter was written against the marker `council-protocol: v12`; a
 different or missing marker means the adapter needs review — say so and
 stop. If the council skill is missing in both places, say so and run
 PLANGENIE.md relay mode instead; never improvise dispatch mechanics.
@@ -205,7 +205,7 @@ PLANGENIE.md relay mode instead; never improvise dispatch mechanics.
    jobs, restores the pins, writes the handoff ledger and the `HANDED
    OFF:` line — then set CHECKPOINT.md's `Council:` line to `relay round
    N — awaiting seat <the line's "next seat">` and its `Ledger:` line to
-   `planning/packets/handoff-ledger.md`, and continue PLANGENIE.md relay
+   the ledger path the line names, and continue PLANGENIE.md relay
    mode from the files in `planning/packets/`: the round's packet is what
    the user carries, a complete critique on disk is that seat's review,
    and IDs, ledger, stop rule, round limit and round number carry over.

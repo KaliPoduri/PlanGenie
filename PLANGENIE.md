@@ -546,18 +546,25 @@ not the user:**
   the same concrete edit (or edits that combine into one without dropping
   either) — agreeing that something is missing is not agreeing on what to
   add. If they share the concern but proposed different fixes, the concern
-  is agreed and nothing is applied: each seat's fix becomes a remedy point
-  ("remedy for <id>") carried to the OTHER seat in round 2, exactly like
-  AGREE WITH CHANGE. Every other item is **carried** to the other seat in
+  is **fix pending** and nothing is applied: each fix is an alternative
+  under the concern's own ID (`<id>/a`, `<id>/b`), carried in round 2 to
+  the seat that has not judged it. Alternatives are never points of their
+  own and are never counted. Every other item is **carried** to the other seat in
   the round 2 packet for a verdict. If NEITHER seat raised a point at all,
   there is nothing to debate: record "no concerns raised" instead of a
   percentage and go straight to the final review (zero open items → the
   closing question only).
 - Rounds 2+: tally every carried point by its ID. AGREE → **agreed**, apply
-  this round. AGREE WITH CHANGE → the concern is agreed, and the alternative
-  fix becomes a new point carried back to the ORIGINATING seat; nothing is
-  applied until one fix has both seats' agreement (if the rounds end first,
-  both fixes go to the final review as options). REBUT → **disputed**,
+  this round. AGREE WITH CHANGE → the concern is **fix pending**; the new fix is an
+  alternative (`<id>/b`, …) under the same ID, carried to the seat that
+  has not judged it. Tally a concern only after ALL of the round's
+  verdicts are in: an edit — the original fix or any alternative —
+  accepted by both seats makes the concern **agreed** with that edit
+  (the earliest-proposed one if several) and closes its other
+  alternatives ("superseded"); otherwise a new alternative keeps it fix
+  pending; a concern whose every alternative has been rebutted is
+  **deadlocked** with all fixes recorded. If the rounds end first, the
+  concern is ONE final-review item with every alternative as an option. REBUT → **disputed**,
   carried back ONCE to the originating seat with the rebuttal: if that seat
   concedes, the point is **withdrawn** (settled, no edit); if it rebuts
   again, the point is **deadlocked** — frozen, never carried again, both
@@ -588,8 +595,9 @@ not the user:**
   a user line without changing its meaning is applied normally. A user's
   answer can be wrong — but only the user may change it (Hard Rule 1).
 - **Agreement percentage** (cumulative over every point raised so far):
-  settled ÷ (settled + deadlocked + still carried + open verification +
-  user decision), where settled = agreed or withdrawn (and, after a final
+  settled ÷ (settled + deadlocked + still carried + fix pending + open
+  verification + user decision), counted by concern ID (alternatives
+  never counted), where settled = agreed or withdrawn (and, after a final
   review, applied or rejected by the user) — every other state is
   unresolved and counts against the percentage, an unchecked claim and a
   user-decision point included. It
@@ -598,9 +606,10 @@ not the user:**
   never how correct the plan is; present it as progress, and say so
   whenever you show it. With files, write `planning/packets/round-N-merge.md`
   as the **cumulative ledger** — every point raised in ANY round so far, by
-  ID, with its state (agreed / withdrawn / carried / deadlocked / open
-  verification / user decision), the text of each carried, deadlocked or
-  user-decision point with both seats' positions, the percentage, and the
+  ID, with its state (agreed / withdrawn / carried / fix pending /
+  deadlocked / open verification / user decision), the text of each
+  carried, fix-pending, deadlocked or user-decision point with both
+  seats' positions and its alternatives, the percentage, and the
   exact edits to apply this round, each with its full text and the marker
   that shows it done
   — BEFORE touching the plan (CHECKPOINT.md `Council: round N, merged`),
@@ -628,7 +637,7 @@ not the user:**
   nothing is carried, nothing awaits verification, and neither seat raised
   a new concern. Either way stop at the round limit.
   Whatever ends the rounds, every point still carried at that moment —
-  major, minor or refinement, remedy points and single-seat points included
+  major, minor or refinement, fix-pending concerns and single-seat points included
   — becomes a final-review open item; nothing is dropped.
 
 **Final review — the only place the user judges.** With files, write
@@ -681,8 +690,8 @@ the freeze (it goes to BOTH seats in the next packet, each side's
 positions listed; that packet asks each seat for a verdict on the other
 side's position and the ONE concrete edit it would accept. A reopened
 point is agreed only when both seats name the same concrete edit; an
-AGREE WITH CHANGE naming a fix the other seat did not name becomes a
-remedy point under the ordinary rule; any REBUT — one AGREE beside one
+AGREE WITH CHANGE naming a fix the other seat did not name becomes an
+alternative under the concern's ID under the ordinary rule; any REBUT — one AGREE beside one
 REBUT included — re-freezes it as deadlocked at once, both new positions
 kept for the next final review, with no second carry-back); (2) point CHECKPOINT.md's `Ledger` line at that file and set
 `Council: reopened after cycle c — round N+1 next`, with the round limit

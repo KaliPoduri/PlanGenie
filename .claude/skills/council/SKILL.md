@@ -5,7 +5,7 @@ description: Use when the user wants a multi-round cross-AI review or debate of 
 
 # Council — cross-AI review of a document
 
-`council-protocol: v11` — compatibility marker. Bump it whenever a change
+`council-protocol: v12` — compatibility marker. Bump it whenever a change
 here alters what an adapter (e.g. plangenie SKILL.md) must do: new or
 renamed sections, changed snippets, changed step numbering. Adapters check
 this line before following the protocol. Version history: `CHANGELOG.md`
@@ -77,7 +77,7 @@ folders if missing.
 | Path | Holds |
 |---|---|
 | `planning/council_state/LOG.md` | the council's state (section 4); `archive-<date-time>/` for a previous council's LOG.md |
-| `planning/packets/` | `round-N-packet*.md`, `round-N-critique-<seat>.md`, `round-N-merge.md`, `reopen-<c>-ledger.md`, `handoff-ledger.md`, `FINAL.md`; `archive-<date-time>/` for a previous council's debate |
+| `planning/packets/` | `round-N-packet*.md`, `round-N-critique-<seat>.md`, `round-N-merge.md`, `round-N-result.md`, `reopen-<c>-ledger.md`, `FINAL.md`, `final-<c>-result.md`; `archive-<date-time>/` for a previous council's debate |
 | `planning/status/next_session.md` | one paragraph: where the council is, next action — rewritten each round, pause, resume, close |
 | `planning/status/progress.md` | one appended line per round, pause, resume, abandon, handoff, close |
 
@@ -95,8 +95,8 @@ are tracked deletions — test each with `[ -e <path> ]`, expand
 `git add` fails on a pathspec that matches nothing (a pause between Setup
 questions commits LOG.md alone): `<document under review>
 planning/council_state/LOG.md planning/packets/round-N-*.md
-planning/packets/reopen-*-ledger.md planning/packets/handoff-ledger.md
-planning/packets/FINAL.md planning/status/next_session.md
+planning/packets/reopen-*-ledger.md planning/packets/FINAL.md
+planning/packets/final-*-result.md planning/status/next_session.md
 planning/status/progress.md <old paths of files this council archived>`.
 Never `planning/*/archive-*/`, never a plain `git commit` (it sweeps the
 user's unrelated staged work in), never `commit -a`. Inspect with `git
@@ -111,19 +111,22 @@ later) and the events that follow them:
 
 | Line | Meaning |
 |---|---|
+| `COUNCIL ID: <document basename>-<compact ISO timestamp>` | unique per council; prefixes every Codex job prompt so a listing never confuses two councils |
 | `DOCUMENT: <absolute path> (<path relative to PLANNING DIR>)` | the file under review |
 | `PLANNING DIR: <absolute path>` | where `planning/` sits; every relative path resolves against it; where a fresh session must start |
 | `JOB ROOT: <absolute path>` | `git rev-parse --show-toplevel`, or the project directory without a repository; the Codex companion keys job state by it, so every companion command runs `cd "<JOB ROOT>" && node "$COMPANION" …`. The two paths coincide only when the council started at the repository root; neither substitutes for the other |
 | `CALLER: standalone` or `CALLER: <adapter> — resume with <command>; adapter <path>` | who started the council; an adapter's council is always resumed through the adapter (section 9) |
 | `CHECKPOINTS: git` or `CHECKPOINTS: files-only` | decided before LOG.md is written (section 5, step 2) |
 | `SEATS: claude, codex` | the roster; rewritten `SEATS: claude, claude-2` by the Claude-only fallback |
-| `CLAUDE MODEL:`, `CODEX MODEL:`, `EFFORT:`, `STOP RULE:`, `ROUND LIMIT:`, `ROUND TARGET:` | Setup answers; `ROUND TARGET` is the fixed-rounds count (absent with a percentage rule); a reopen raises both LIMIT and TARGET |
+| `CLAUDE MODEL:`, `CLAUDE-2 MODEL:`, `CODEX MODEL:`, `EFFORT:`, `STOP RULE:`, `ROUND LIMIT:`, `ROUND TARGET:` | Setup answers; `CLAUDE-2 MODEL` is the model `council-claude-seat-2.md` pins after Setup step 5's swap rule — the explicit `model` of every `claude-2` dispatch; `ROUND TARGET` is the fixed-rounds count (absent with a percentage rule); a reopen raises both LIMIT and TARGET |
 | `AGENT FILE claude: <path> (was model: X, effort: Y)`, same for `claude-2` | the resolved seat files and their values before pinning — what close-out restores |
 | `SETUP: k/5 answered` | round-1 setup progress |
-| `LEDGER: <path>` or `LEDGER: none` | the newest merge, reopen or handoff ledger — the cumulative record of every point |
+| `LEDGER: <path>` or `LEDGER: none` | the newest merge or reopen ledger — the cumulative record of every point |
+| `RESULT (round N): <path>` / `RESULT (final review c): <path>` | the prepared document for the stage's apply (section 7) |
+| `REBASED (<state>): <hash> — <ISO timestamp>` | the user accepted a document changed outside the council; this hash is the state's expected hash from here on (section 7, Rebase) |
 | `DOC AT SETUP: <hash>` | `git hash-object <document>` when the council started |
 | `DOC AT DISPATCH (round N): <hash>` | the document the seats of round N received |
-| `DOC BEFORE APPLY (round N): <hash>` / `DOC AFTER APPLY (round N): <hash>` | the apply pair of round N; the Final review's pair is labeled `(final review c)` |
+| `DOC BEFORE APPLY (round N): <hash>` / `DOC AFTER APPLY (round N): <hash>` | the apply pair of round N — BEFORE is the document at merge time, AFTER is the hash of the prepared result, both logged before the apply; the Final review's pair is labeled `(final review c)` |
 | `DISPATCH INTENT (round N, attempt a): <seats>; packet <path(s)>; <ISO timestamp>` | written before a launch (section 6, step 1) |
 | `- codex job <id> (round N, attempt a): dispatched <ISO timestamp>, deadline <epoch seconds>` | the launch's receipt |
 | `WAIVED (round N): <seat> — <single-seat \| Claude-only> chosen <ISO timestamp>` | a seat the user excused for the round |
@@ -141,10 +144,10 @@ disagree with this table, the table wins.
 | `IN PROGRESS (round N, dispatching)` | `DISPATCH INTENT` written, packets complete | `DOC AT DISPATCH (round N)` | audit the intent (section 6, step 1): adopt or re-launch the Codex job; launch the Claude seat(s) whose critique is missing |
 | `IN PROGRESS (round N, dispatched)` | every Codex job of the intent has its receipt line; Claude seat(s) launched | `DOC AT DISPATCH (round N)` | `status`/`result` each logged job; re-dispatch lost seats; re-launch killed Claude seats |
 | `IN PROGRESS (round N, collected)` | every seat in `SEATS (round N)` has a complete critique file on disk (ends with `END OF CRITIQUE`) | `DOC AT DISPATCH (round N)` | re-validate the critique files; merge and tally |
-| `IN PROGRESS (round N, merged)` | `round-N-merge.md` complete (ends with `END OF LEDGER`), `LEDGER:` re-pointed and `DOC BEFORE APPLY (round N)` in the same write | reconcile against round N's own pair (section 7) | apply what is missing, then `applied` |
-| `IN PROGRESS (round N, applied)` | edits applied, `DOC AFTER APPLY (round N)` logged, hand-off notes written | `DOC AFTER APPLY (round N)` | commit if the round's commit is missing; stop-rule check |
-| `FINAL REVIEW (k/m)` | `FINAL.md` complete for cycle c; k of its m verdicts logged (`k` counts verdicts; item numbers `i` continue across cycles). At `m/m`, `DOC BEFORE APPLY (final review c)` is in the same write | k < m: the last round's AFTER (or the previous cycle's); `m/m`: reconcile against cycle c's own pair | present the next unanswered item; at `m/m` apply the missing resolutions and finish section 8, step 3 |
-| `FINAL REVIEW (resolved)` | resolutions applied, FINAL.md's ledger rewritten, `DOC AFTER APPLY (final review c)` logged in the same write | `DOC AFTER APPLY (final review c)` | ask the closing question |
+| `IN PROGRESS (round N, merged)` | `round-N-merge.md` complete (ends with `END OF LEDGER`), `round-N-result.md` written, and — in one write — `LEDGER:`, `RESULT (round N)`, `DOC BEFORE APPLY (round N)`, `DOC AFTER APPLY (round N)` | BEFORE (result not yet copied) or AFTER (copied) — nothing else (section 7) | BEFORE: copy the result over the document; then `applied` |
+| `IN PROGRESS (round N, applied)` | the document's hash equals `DOC AFTER APPLY (round N)`, hand-off notes written | `DOC AFTER APPLY (round N)` | commit if the round's commit is missing; stop-rule check |
+| `FINAL REVIEW (k/m)` | `FINAL.md` complete for cycle c; k of its m verdicts logged (`k` counts verdicts; item numbers `i` continue across cycles). At `m/m`, `final-<c>-result.md` is written and `RESULT`, `DOC BEFORE APPLY (final review c)`, `DOC AFTER APPLY (final review c)` are in the same write | k < m: the last round's AFTER (or the previous cycle's); `m/m`: BEFORE or AFTER, nothing else | present the next unanswered item; at `m/m` copy the result if the hash is BEFORE, then finish section 8, step 3 |
+| `FINAL REVIEW (resolved)` | the document's hash equals `DOC AFTER APPLY (final review c)` and FINAL.md's ledger is rewritten (zero items: AFTER is the current hash, logged in the same write as `resolved`) | `DOC AFTER APPLY (final review c)` | ask the closing question |
 | `PAUSED (<state>)` | the pause procedure ran (section 9) | as the state named | log the resumption, then act as the state named |
 | `ABANDONING` / `HANDING OFF (relay)` | the user's decision is logged | any | finish the cleanup (section 10), then write the terminal state |
 | `HANDED OFF (relay, round N, <stage>)` | jobs cancelled, pins restored, the `HANDED OFF:` line written | — | nothing here: the adapter's relay state is authoritative; never re-dispatch, never archive while the relay council is live |
@@ -152,14 +155,12 @@ disagree with this table, the table wins.
 
 **Expected-hash rule.** On every resume, and at merge time, hash the
 document (`git hash-object <document>`) and compare it with the expected
-hash for the current state. States marked "reconcile" use section 7's
-reconciliation instead. A mismatch means the document changed outside
-the council (a hand edit during a pause, another tool): AskUserQuestion —
-continue on the changed document (the current round's packets are
-rewritten from it and the round re-dispatched; critiques already on disk
-are renamed `<name>.superseded`; at the Final review, the affected
-resolutions are re-asked), or abandon the council (section 10). Never
-merge, apply or dispatch over an unexplained change.
+hash for the current state (a `REBASED (<state>)` line for that state
+replaces it). A mismatch means the document changed outside the council
+(a hand edit during a pause, another tool): AskUserQuestion — continue
+on the changed document (section 7, Rebase) or abandon the council
+(section 10). Never merge, apply or dispatch over an unexplained change,
+and never "repair" the document.
 
 ## 5. Setup (once per council)
 
@@ -228,9 +229,11 @@ LOG.md once, complete, in its own preflight; before that write there is
 no LOG.md and nothing in this skill runs on a pause.)
 
 **4. Write LOG.md** — before any agent file is touched: every header
-line of section 4 (`DOC AT SETUP` included; `LEDGER: none`; `ROUND
-TARGET` only with a fixed-rounds rule), the agent files' current
-`model:`/`effort:` values, and `STATUS: IN PROGRESS (round 1, setup)`.
+line of section 4 (`COUNCIL ID` and `DOC AT SETUP` included; `LEDGER:
+none`; `ROUND TARGET` only with a fixed-rounds rule; `CLAUDE-2 MODEL` =
+the model step 5 will leave in `council-claude-seat-2.md`), the agent
+files' current `model:`/`effort:` values, and `STATUS: IN PROGRESS
+(round 1, setup)`.
 
 **5. Pin the Claude seat(s)** — only after step 4 recorded the previous
 values. Set `model:` and `effort:` in the resolved `council-claude-seat.md`
@@ -264,10 +267,14 @@ verdict: AGREE, AGREE WITH CHANGE (concern accepted, different fix — say
 which), or REBUT (reason). Then list only NEW major concerns you have
 not raised before" and, below it, **"Already settled or frozen — do not
 raise these again:"** — every other ID in the ledger (applied,
-withdrawn, deadlocked, open verification, user decision), one line each
-with title and state, plus "If a concern of yours matches one of these,
-cite its ID instead of restating it; a restated point is not counted as
-new"; the seat rules: "Read the ENTIRE packet file in bounded chunks — a
+withdrawn, deadlocked, user decision, and open verifications nobody can
+check), one line each with title and state, plus "If a concern of yours
+matches one of these, cite its ID instead of restating it; a restated
+point is not counted as new"; a third list, **"Verification requests:"**,
+for the open-verification IDs routed to THIS seat (section 7): each with
+the claim and "Check it with a tool you have; reply VERIFIED or REFUTED
+with the tool and source, or UNVERIFIABLE with the reason" — these IDs
+never appear in the frozen list; the seat rules: "Read the ENTIRE packet file in bounded chunks — a
 read that reports truncation is incomplete even if the end line is
 visible; if the last line `END COUNCIL REVIEW PACKET` is missing, the
 packet is truncated: report that and stop. End your reply with the line
@@ -285,32 +292,34 @@ it, never dispatch or reuse it.
    (round 1 equals `DOC AT SETUP`), `SEATS (round N): <seats>` and
    `STATUS: IN PROGRESS (round N, dispatching)`. Then launch both seats
    in the same message:
-   - Claude seat: Agent tool, `subagent_type: "council-claude-seat"`
-     (`council-claude-seat-2` for `claude-2`), explicit `model` = the
-     Setup choice, prompt "Read <absolute packet path> and return your
-     full critique as text." If the agent type is missing, use
+   - Claude seat: Agent tool, `subagent_type: "council-claude-seat"` with
+     explicit `model` = `CLAUDE MODEL` (for `claude-2`:
+     `council-claude-seat-2` with explicit `model` = `CLAUDE-2 MODEL` —
+     never the seat-1 model), prompt "Read <absolute packet path> and
+     return your full critique as text." If the agent type is missing, use
      `general-purpose` with the explicit `model` and say plainly the seat
      ran at session effort and without an enforced read-only tool
      boundary; log each seat's actual tools in LOG.md.
    - Codex seat, from `JOB ROOT`:
      ```bash
      COMPANION=$(printf '%s\n' ~/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs | sort -V | tail -1)
-     cd "<JOB ROOT>" && node "$COMPANION" task --background --json --model "<codex model>" --effort "<effort>" -- "council round N attempt a: READ-ONLY review - do not edit or create any files. Read the file <absolute packet path> and return your full critique."
+     cd "<JOB ROOT>" && node "$COMPANION" task --background --json --model "<codex model>" --effort "<effort>" -- "council <COUNCIL ID> round N attempt a: READ-ONLY review - do not edit or create any files. Read the file <absolute packet path> and return your full critique."
      ```
      Omit `--model` when the user kept the Codex default. Never pass
      `--write` (the sandbox flag, not the prompt, is the real write
      guard; the READ-ONLY prefix is defense in depth). Flags as separate
      arguments, `--`, then ONE quoted prompt: the companion re-splits a
      single combined argument and strips backslashes from Windows paths.
-     The `council round N attempt a` prefix is what makes the job
-     identifiable in a job listing.
+     The `council <COUNCIL ID> round N attempt a` prefix is what makes
+     the job identifiable in a job listing.
    - **Receipt.** The instant the launch prints a job id, append `- codex
      job <id> (round N, attempt a): dispatched <timestamp>, deadline
      <now + 45 min, epoch seconds>` and `STATUS: IN PROGRESS (round N,
      dispatched)`. The window between launch and receipt is what the
      intent covers: **resume at `dispatching`** runs a bare
      `cd "<JOB ROOT>" && node "$COMPANION" status --json` — a job whose
-     summary starts with `council round N attempt a` is the launched job:
+     summary starts with `council <COUNCIL ID> round N attempt a` is the
+     launched job:
      adopt it (write its receipt); none listed: the job is lost (the
      plugin's session cleanup, or the launch never happened) — write a
      new intent with attempt a+1 and launch again. A Claude seat whose
@@ -388,13 +397,20 @@ it, never dispatch or reuse it.
    Every other concern is **carried** to the other seat. If neither seat
    raised anything, log `no concerns raised` instead of a percentage and
    go to the Final review (zero open items). Rounds 2+: tally every
-   carried point by ID from the verdicts (section 7). Then write
-   `round-N-merge.md` (the cumulative ledger), check the expected hash,
-   and in ONE write log `LEDGER: planning/packets/round-N-merge.md`, `DOC
-   BEFORE APPLY (round N): <hash>` and `STATUS: IN PROGRESS (round N,
-   merged)` — before touching the document.
-6. **Apply** every agreed edit in one pass (section 7's schema; Hard rule
-   8 excluded), log `DOC AFTER APPLY (round N)`, rewrite
+   concern by ID with section 7's algorithm, after ALL verdicts are in.
+   Then check the expected hash, write `round-N-merge.md` (the cumulative
+   ledger) and **prepare the result**: `round-N-result.md`, the complete
+   document with every edit to apply this round already in it (tags
+   included; Hard rule 8 excluded) — built from the ledger's edit entries
+   against the current document, never applied piecemeal to the document
+   itself. Hash the result. Then, in ONE write: `LEDGER:
+   planning/packets/round-N-merge.md`, `RESULT (round N):
+   planning/packets/round-N-result.md`, `DOC BEFORE APPLY (round N):
+   <document hash>`, `DOC AFTER APPLY (round N): <result hash>`, `STATUS:
+   IN PROGRESS (round N, merged)` — before touching the document.
+6. **Apply** = copy the result over the document in one write (`cp
+   round-N-result.md <document>`), then verify the document's hash equals
+   `DOC AFTER APPLY (round N)`; rewrite
    `planning/status/next_session.md`, append `- <timestamp> council round
    N applied — <agreed>/<carried>/<deadlocked>, <percentage>` to
    `progress.md`, append the round's tally, percentage, seat models,
@@ -435,41 +451,51 @@ apply this round) · `withdrawn` (conceded; no edit) · `deadlocked`
 decision` (Hard rule 8) · after the Final review: `applied`, `rejected`,
 `open`.
 
-**Verdict transitions** (rounds 2+), applied to the point or alternative
-the verdict names:
-- AGREE on a carried concern's fix → `agreed`. AGREE on an alternative →
-  the concern is `agreed` with that alternative as its edit; its other
-  alternatives are closed (`superseded by <id>`), not counted.
-- AGREE WITH CHANGE → the concern is `fix pending`; the new fix is an
-  alternative carried next round to the seat that has not judged it.
-  Nothing is applied until one alternative has both seats' agreement. If
-  the rounds end first, the concern is ONE Final-review item with every
-  alternative as an option.
-- REBUT on a carried concern → carried back ONCE to the originating seat
-  with the rebuttal. The originating seat then answers AGREE (→
-  `withdrawn`), REBUT (→ `deadlocked`, never carried again) or AGREE WITH
-  CHANGE (the original fix is dropped; the new fix is an alternative,
-  the concern is `fix pending`). REBUT on an alternative closes that
-  alternative; when a fix-pending concern has no open alternative left it
-  is `deadlocked` with every fix recorded.
-- Missing verdict → re-send that seat's packet at most once per round;
-  still missing → `deadlocked` and the seat marked failed for the round;
-  never guess a position.
-- Open verification: routed next round to the seat with tools to check
-  it, or, if neither has them, recorded as an open item for the Final
-  review; settled only when a seat verifies or refutes it with a named
-  tool and source (the edit is then applied like an agreed one, tagged
-  `verified: <source>, <date>; council-agreed: <ids>`).
-- **User-conflict check** on every edit about to be applied (Hard rule
-  8): if it changes or removes a line marked as the user's own, the
-  concern becomes `user decision`, the edit and the conflicting line are
-  recorded together, and the point is never carried again. An edit that
-  only adds next to a user line is applied normally.
-- A **reopened** point (section 8, step 4) sits with BOTH seats: each
-  gets the other's positions and gives one verdict plus the ONE edit it
-  would accept; both naming the same edit → `agreed`; an AGREE WITH
-  CHANGE naming a new fix → an alternative under the ordinary rule; any
-  REBUT → `deadlocked` again at once (no second carry-back).
+**Tally algorithm** (rounds 2+) — run per concern, only after EVERY
+verdict of the round is in (a missing verdict is re-requested first:
+re-send that seat's packet at most once per round; still missing → the
+seat is marked failed for the round and its verdicts count as REBUT
+without a reason; never guess a position). Each concern has a list of
+edits — its original fix and its alternatives (`<id>/a`, `<id>/b`, …) —
+and, per edit, each seat's stance: **accepts** (it proposed the edit, or
+answered AGREE on it) or **rejects** (REBUT on it, or AGREE WITH CHANGE,
+which rejects the edit it answers and proposes a new one). Then, in this
+order:
+1. An edit both seats accept → the concern is `agreed` with that edit
+   (the earliest-proposed if several); every other edit of the concern is
+   closed `superseded by <edit>`.
+2. Else, a new edit was proposed this round → `fix pending`; the new edit
+   is carried next round to the seat that has not judged it.
+3. Else, the concern's only edit was rejected this round for the first
+   time (a REBUT with a reason, no alternative offered) → still
+   `carried`: sent back ONCE to the originating seat with the rebuttal;
+   that seat's next answer is AGREE with the rebuttal → `withdrawn`, a
+   new edit → step 2, REBUT → step 4.
+4. Else → `deadlocked`: frozen, never carried again, every edit and
+   position recorded.
+The same algorithm handles a **reopened** point (section 8, step 4),
+which sits with BOTH seats: each gets the other's positions and gives one
+verdict plus the ONE edit it would accept; step 3 is skipped for it (a
+reopened point has had its carry-back), so any rejection without a new
+mutually accepted edit deadlocks it again.
+
+**Open verification.** A claim marked UNVERIFIABLE is routed next round
+as a Verification request (section 6, Packets) to the seat whose tools
+can check it (WebSearch/WebFetch, the repository, a CLI) — that ID is
+never on the frozen list while a request is open. VERIFIED / REFUTED with
+a named tool and source settles it: the resulting edit is applied like an
+agreed one, tagged `verified: <source>, <date>; council-agreed: <ids>`.
+UNVERIFIABLE from both seats, or no seat with the tools, freezes it as an
+open item for the Final review.
+
+**User-conflict check** on every edit about to be applied (Hard rule 8):
+if the edit changes, removes, weakens or contradicts a line marked as
+the user's own — an addition beside `[USER] All data stays local` that
+says "upload backups to cloud storage" contradicts it — the concern
+becomes `user decision`, the edit and the conflicting line are recorded
+together, and the point is never carried again. Only an addition that
+leaves the user line's meaning intact is applied normally; when in
+doubt, user decision.
 
 **Agreement percentage** (cumulative, by concern ID, alternatives not
 counted): `settled / (settled + carried + fix pending + deadlocked + open
@@ -478,53 +504,67 @@ Final review also applied or rejected). It measures how much of the
 debate is settled — ninety-five trivial resolutions and five serious open
 concerns still score 95% — never correctness; present it as progress.
 
-**The ledger** (`round-N-merge.md`, `reopen-<c>-ledger.md`,
-`handoff-ledger.md`) is cumulative: every concern ever raised, by ID,
-with its state, its text, both seats' positions, its alternatives, the
-percentage — and the edits to apply this round, each in the **edit
-schema**. It ends with the line `END OF LEDGER`; a resume needs only the
-newest one (`LEDGER:` names it), because frozen points are never carried
-again and this is the only place their arguments survive.
+**The ledger** (`round-N-merge.md`, `reopen-<c>-ledger.md`) is
+cumulative: every concern ever raised, by ID, with its state, its text,
+both seats' positions, its edits and their stances, the percentage — and
+the edits to apply this round, each in the **edit schema**. It ends with
+the line `END OF LEDGER`; a resume needs only the newest one (`LEDGER:`
+names it), because frozen points are never carried again and this is the
+only place their arguments survive.
 
 **Edit schema** — one format for round edits and Final-review
-resolutions, written before anything is applied:
+resolutions; it is what the prepared result is built from:
 ```
 EDIT <id>            # point ID, or FINAL item i
 op: replace | insert-after | delete | none
 anchor: <exact text currently in the document that the edit changes,
         removes, or is inserted after — verbatim, one or more lines>
 text: <the exact new text, including its tag — absent for delete/none>
-marker: <the tag string that proves the edit is in: e.g.
-        "council-agreed: R2-G-4" or "final review item 3"; for delete,
-        "absent: <first line of the anchor>">
 ```
 Tags per the document's convention: PlanGenie `[CANDIDATE]
 (council-agreed: <ids>)`, `[CONFIRMED] (verified: <source>, <date>;
 council-agreed: <ids>)`, `[CONFIRMED] (user approved, final review item
 i)`; never a verified or user-approved tag without the IDs or item
-number. A "keep what I said", "leave open" or "drop it" verdict is
-recorded as `op: none` with its disposition, so every item has an entry.
+number. A verdict that changes nothing ("keep what I said", "drop it")
+is `op: none`; "leave open" is a real `insert-after` (the `[OPEN]` line
+or "Open concerns" entry), so every document change is in the schema.
 
-**Reconciliation** (resume at `merged` or `FINAL REVIEW (m/m)`): take
-ONLY the hash pair of the current stage (round N, or final review cycle
-c); a hash from any other stage is history — round N's BEFORE equals
-round N-1's AFTER and must never read as "already applied". Hash the
-document: equal to the stage's BEFORE → apply every edit; equal to the
-stage's AFTER → no document write, but the stage's remaining bookkeeping
-(the ledger rewrite of section 8, step 3) still runs; anything else,
-including a stage with no BEFORE of its own → walk the edits one by one:
-- present (marker AND text both in the document — a marker alone can be
-  left by an earlier council on the same file) → skip;
-- absent, anchor present → apply;
-- absent, anchor absent → **application conflict**, never a re-creation:
-  log `- <id>: anchor missing — not applied`. In a round the concern
-  goes back to `carried` (a Final-review open item, "document changed
-  outside the council"). In a Final review the item's verdict is voided
-  (`- FINAL item i: verdict voided — anchor missing`), it is re-asked
-  against the changed document after the other resolutions are applied,
-  and the cycle reaches `m/m` again with a fresh BEFORE hash.
-An edit is never applied twice, and "nothing to apply" is never
-concluded from another stage's hash.
+**Prepared result and atomic apply.** Nothing is ever edited in place.
+At merge (or at `m/m`) the orchestrator builds the whole resulting
+document — the current document with every edit entry applied — as a
+separate file (`round-N-result.md`, `final-<c>-result.md`), hashes it,
+logs BEFORE (the document now) and AFTER (the result) in the same write
+as the stage, and only then copies the result over the document in one
+write. **Reconciliation** on a resume at `merged` or `FINAL REVIEW
+(m/m)` is therefore a single comparison, against ONLY the current
+stage's own pair (round N's BEFORE equals round N-1's AFTER and must
+never read as "already applied"): the document hashes to BEFORE → copy
+the result; to AFTER → the copy happened, continue with the stage's
+remaining bookkeeping; anything else → the document changed outside the
+council: the expected-hash question (section 4). There is no
+edit-by-edit walk, no marker search, and no partial state to repair.
+If an edit's anchor is not found while BUILDING a result, that edit is
+not in the result: the concern goes back to `carried` (`- <id>: anchor
+not found — carried`) or, in a Final review, the item's verdict is voided
+(`- FINAL item i: verdict voided — anchor not found`) and it is re-asked
+in the next cycle of step 3.
+
+**Rebase** — the "continue on the changed document" answer to the
+expected-hash question. In ONE write: `REBASED (<current state>): <new
+hash> — <timestamp>` (this hash is now the state's expected hash) and a
+note of what is invalidated; then, by state: `setup` → nothing else, the
+next dispatch reads the document as it is; `dispatching` / `dispatched`
+/ `collected` → the round's attempt is void: critiques on disk are
+renamed `<name>.superseded`, packets are rewritten from the new
+document, and dispatch restarts with attempt a+1 (the round number does
+not change); `merged` / `FINAL REVIEW (m/m)` → the prepared result is
+discarded (`<name>.superseded`), the same ledger entries are rebuilt into
+a new result against the new document (anchors that no longer exist
+follow the anchor-not-found rule), and the stage's write is repeated
+with the new BEFORE/AFTER pair; `applied` / `FINAL REVIEW (k/m)` /
+`resolved` → nothing else: later stages start from the document as it
+is. The seat verdicts and the ledger are never invalidated by a rebase —
+only anchors are.
 
 ## 8. Final review — the only place the user judges
 
@@ -541,9 +581,10 @@ concluded from another stage's hash.
    cycles' items with their verdicts. **Item numbers never restart within
    a council**: cycle 2 continues from cycle 1's last number, so `final
    review item i` is unique across the council. Then `STATUS: FINAL
-   REVIEW (0/m)` — unless m = 0: nothing to ask or apply, so write
-   `STATUS: FINAL REVIEW (resolved)` directly (never `0/0`, no hash
-   pair), do step 2, then step 4.
+   REVIEW (0/m)` — unless m = 0: nothing to ask or apply, so in ONE write
+   log `DOC AFTER APPLY (final review c): <the document's current hash>`
+   and `STATUS: FINAL REVIEW (resolved)` (never `0/0`; the AFTER hash is
+   what a later resume or reopen expects), do step 2, then step 4.
 2. **Show the user the final document** (full current version) and the
    FINAL.md summary in plain language.
 3. **Ask the open items only**, via AskUserQuestion, up to four per call,
@@ -553,15 +594,18 @@ concluded from another stage's hash.
    edit schema into FINAL.md (`op: none` for keep / leave open / drop),
    update its ledger line (`<option> — to apply`, `rejected`, `open —
    user's choice`), and set `STATUS: FINAL REVIEW (k/m)` before the next
-   call. The write that logs the LAST verdict sets `FINAL REVIEW (m/m)`
-   AND `DOC BEFORE APPLY (final review c)` together. Then apply the
-   resolutions in one pass (each tagged with its item number `i`; every
-   item left open recorded in the document's convention — an "Open
-   concerns" section, or `[OPEN]` tags), rewrite FINAL.md's closing
-   ledger so every ID reads applied / withdrawn / rejected / open, and
-   only then, in ONE write, log `DOC AFTER APPLY (final review c)` and
-   `STATUS: FINAL REVIEW (resolved)`. A ledger with any ID still "to
-   apply" or awaiting a verdict is not resolved.
+   call. After the LAST verdict: build `final-<c>-result.md` from every
+   item's edit entry (each resolution tagged with its item number `i`;
+   every item left open as its `[OPEN]` line or "Open concerns" entry),
+   hash it, and in ONE write log `RESULT (final review c)`, `DOC BEFORE
+   APPLY (final review c)`, `DOC AFTER APPLY (final review c)` and
+   `STATUS: FINAL REVIEW (m/m)`. Then copy the result over the document,
+   verify the hash, rewrite FINAL.md's closing ledger so every ID reads
+   applied / withdrawn / rejected / open, and only then write `STATUS:
+   FINAL REVIEW (resolved)`. A ledger with any ID still "to apply" or
+   awaiting a verdict is not resolved. Voided verdicts (section 7) are
+   re-asked here before the closing question: they form a further pass
+   of this step with a new result file and pair.
 4. **One closing question**: accept the document as final, or run more
    rounds (the user names how many). With zero open items this is the
    only question. **"More rounds" is a reopen transition**, in this
@@ -655,8 +699,9 @@ session (same-session resumes go through this procedure too).
 6. **Tell the user in one paragraph** where the council is (state,
    `RESUME:` line, seats, models, stop rule, percentage) and that nothing
    was lost.
-7. **Check the expected hash** (section 4), then **continue at the
-   recorded state per the state table.** Two additions: at `applied`,
+7. **Check the expected hash** (section 4; at `merged` and `m/m` this is
+   section 7's reconciliation), then **continue at the recorded state
+   per the state table.** Two additions: at `applied`,
    check `git log -- planning/council_state/LOG.md` for the round's
    commit and make it if missing before the stop-rule check; at `setup`
    with a `REOPENED:` line as the latest event, the reopen ledger is the
@@ -683,10 +728,13 @@ that offer "start over" MUST run it before moving anything under
 `planning/packets/` or `planning/council_state/`: (1) write `STATUS:
 ABANDONING` with `- abandon requested <timestamp>` (the decision is
 durable from here; a resume at `ABANDONING` finishes these steps, never
-restarts the review); (2) for every job id with a receipt and no terminal
-result, `status` it from `JOB ROOT`, `cancel` it if queued or running
-(section 11), log `- codex job <id> cancelled at abandon` (or `not
-found`); (3) restore the agent pins under the ownership rule; (4) in ONE
+restarts the review); (2) first run the `dispatching` audit (section 6,
+step 1) for any `DISPATCH INTENT` without a receipt, so a job launched in
+the launch-to-receipt window gets its receipt; then, for every job id
+with a receipt and no terminal result, `status` it from `JOB ROOT`,
+`cancel` it if queued or running (section 11), log `- codex job <id>
+cancelled at abandon` (or `not found`); (3) restore the agent pins under
+the ownership rule; (4) in ONE
 write, `STATUS: ABANDONED` and `ABANDONED AT: <timestamp>`; update
 `next_session.md`, append `- <timestamp> council abandoned at <state>` to
 `progress.md`; (5) checkpoint commit; only now archive (section 5, step
@@ -697,22 +745,19 @@ relay mode when the automated seats fail (PlanGenie's preflight step 3),
 so a later resume does not re-pin and re-dispatch: (1) write `STATUS:
 HANDING OFF (relay)` with `- handoff requested <timestamp>` (a resume at
 this state finishes the handoff); (2) steps 2–3 of Abandoning, logging
-`cancelled at handoff`; (3) **convert the ledger**: write
-`planning/packets/handoff-ledger.md` in the ledger format with every
-`fix pending` concern rewritten as `carried` and its alternatives listed
-as the two seats' positions (the relay core has no fix-pending state;
-everything else maps one-to-one), and log `- converted for relay:
-<ids, or none>`; (4) in ONE write: `LEDGER:
-planning/packets/handoff-ledger.md`, `HANDED OFF: relay at round N,
-<stage> — <timestamp>; ledger planning/packets/handoff-ledger.md;
+`cancelled at handoff`; (3) in ONE write: `HANDED OFF: relay at round N,
+<stage> — <timestamp>; ledger <the path LEDGER: names, or none>;
 complete critiques on disk: <paths, or none>; next seat: <1 if the Claude
 critique is missing, else 2>` and `STATUS: HANDED OFF (relay, round N,
 <stage>)`; update `next_session.md`, append `- <timestamp> council handed
-off to relay at round N, <stage>` to `progress.md`; checkpoint commit
-(the handoff ledger included). Archive nothing: the packets (already
-ending with `END COUNCIL REVIEW PACKET`), the complete critiques and the
-handoff ledger are exactly what relay mode reads; point IDs, round
-number, stop rule and round limit carry over. The `HANDED OFF:` line
+off to relay at round N, <stage>` to `progress.md`; checkpoint commit.
+Archive nothing and convert nothing: PLANGENIE.md's relay mode uses the
+same point model (concern IDs, alternatives under them, the same states
+and percentage), the same packet terminator and the same ledger format,
+so the packets, the complete critiques and the ledger are read as they
+are; point IDs, round number, stop rule and round limit carry over (a
+`merged` stage hands off its ledger, never its prepared result — relay
+mode applies from the ledger). The `HANDED OFF:` line
 carries everything the adapter needs to rebuild its own relay state if
 the stop hits between this write and the adapter's (PlanGenie's Step 0
 does that).
